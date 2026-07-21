@@ -15,6 +15,9 @@ Running notes for the 1hr/day sessions. Update at the end of every session: what
 - S3 (auth/RBAC) → `auth-service`, issues JWTs the other two services verify.
 - S5 (GraphQL), S6 (Mongo notes) → `academic-service`.
 - `notification-service`'s real logic (Socket.io + Redis pub/sub) stays in the deferred/stretch list from the original plan — scaffolded now, implemented later if time allows.
+
+- [x] **S1e** — Added a BFF (Backend-for-Frontend) proxy so the frontend has one navigable entry point instead of three. `apps/web/src/app/api/[service]/[...path]/route.ts` forwards any `/api/{auth|academic|notifications}/...` call server-to-server to the matching service, attaching the auth cookie as a Bearer token in one place. `src/lib/api.ts` gives components a single `apiFetch("auth/health")`-style call — they never see ports or CORS. Verified end-to-end: all three services + web running concurrently, `/api/auth/health`, `/api/academic/health`, `/api/notifications/health` all round-tripped correctly through the proxy.
+  - Gotcha hit while testing: a stale dev server from an earlier session was still holding port 3000, so this run's `next dev` silently moved to 3001 — curls against 3000 hit the old routeless server and looked like a routing bug. Always check the actual port `next dev` prints before assuming a request failed.
 - [ ] **S2 (Wed)** — Postgres (Neon free tier) + Prisma schema: users/roles/students/classes/enrollments, seed script.
 - [ ] **S3 (Fri)** — Auth (NextAuth or hand-rolled JWT) with role field + RBAC middleware; login page redirects by role.
 

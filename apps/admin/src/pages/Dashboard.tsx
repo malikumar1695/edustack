@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
 import { Card, List, Tag, Typography } from "antd";
-import { apiFetch } from "../lib/api";
+import { authApi, academicApi, notificationsApi } from "../lib/http";
 
 const { Title, Text } = Typography;
 
 type ServiceHealth = { service: string; status: string };
 
-const SERVICES: string[] = ["auth", "academic", "notifications"];
+const CLIENTS = {
+  auth: authApi,
+  academic: academicApi,
+  notifications: notificationsApi,
+} as const;
+
+type ServiceName = keyof typeof CLIENTS;
+const SERVICE_NAMES = Object.keys(CLIENTS) as ServiceName[];
 
 export default function DashboardPage() {
   const [results, setResults] = useState<
@@ -14,9 +21,10 @@ export default function DashboardPage() {
   >({});
 
   useEffect(() => {
-    SERVICES.forEach((name) => {
-      apiFetch<ServiceHealth>(`${name}/health`)
-        .then((data) => setResults((r) => ({ ...r, [name]: data })))
+    SERVICE_NAMES.forEach((name) => {
+      CLIENTS[name]
+        .get<ServiceHealth>("/health")
+        .then((res) => setResults((r) => ({ ...r, [name]: res.data })))
         .catch((err) =>
           setResults((r) => ({ ...r, [name]: { error: String(err) } })),
         );
@@ -25,18 +33,17 @@ export default function DashboardPage() {
 
   return (
     <Card>
-      <Title level={3}>Dashboard shell (plain React)</Title>
+      <Title level={3}>Dashboard shell (plain React + axios)</Title>
       <Text type="secondary">
-        Same idea as the Next.js version, but every call here is a real
-        cross-origin fetch straight to the service — no proxy in front. If
-        the CORS config on a service doesn't list this app's origin
-        (localhost:5174), these calls fail with a CORS error in the console,
-        not a normal HTTP error.
+        Each service has its own axios instance (see lib/http.ts) with its own
+        baseURL — no more hand-parsing a "service/path" string. The request
+        interceptor attaches the auth token the same way for every call made
+        through any of them.
       </Text>
       <List
         style={{ marginTop: 16 }}
         bordered
-        dataSource={SERVICES}
+        dataSource={SERVICE_NAMES}
         renderItem={(name) => {
           const result = results[name];
           return (

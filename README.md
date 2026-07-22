@@ -7,11 +7,19 @@ Practice project: a multi-role student management system, built to close specifi
 ```
 ilm/
 ├── apps/
-│   ├── web/                  Next.js 14 (App Router) + TS + Tailwind — frontend.
-│   │                          Public pages (catalog/announcements, SSR/ISR) stay
-│   │                          pure Tailwind. Authenticated /dashboard is scoped to
-│   │                          Ant Design (SSR via @ant-design/nextjs-registry) —
-│   │                          a deliberate split, not a mix.
+│   ├── admin/                  :5174 — Vite + React + TS + React Router + Ant
+│   │                          Design. The actual working admin/dashboard UI —
+│   │                          plain client-side React, no framework underneath.
+│   │                          Calls the three services directly (no proxy);
+│   │                          each service's CORS config allows this origin.
+│   │
+│   ├── web/                  Next.js 14 (App Router) + TS + Tailwind — the
+│   │                          public-facing side (catalog/announcements,
+│   │                          SSR/ISR for SEO) plus the BFF proxy pattern at
+│   │                          app/api/[service]/[...path]. Its own /dashboard
+│   │                          route still exists as a reference for the BFF
+│   │                          approach, but apps/admin is where the real
+│   │                          admin UI is being built.
 │   │
 │   ├── auth-service/          :4001 — Express + TS. Users, roles, JWT issuing,
 │   │                          RBAC. Every other service verifies tokens against it.
@@ -27,12 +35,20 @@ ilm/
 └── NOTES.md                   Running build log, updated every session.
 ```
 
-Three services, not five — `student-service`, `attendance-service`, and
-`grade-service` were consolidated into `academic-service` since they share the
-same relational data and would otherwise call each other constantly for no
-real isolation benefit. `auth-service` and `notification-service` earn their
-own boundary: auth is a genuine trust boundary every other service depends on,
-and notifications are event-driven rather than request/response.
+Three backend services, not five — `student-service`, `attendance-service`,
+and `grade-service` were consolidated into `academic-service` since they share
+the same relational data and would otherwise call each other constantly for
+no real isolation benefit. `auth-service` and `notification-service` earn
+their own boundary: auth is a genuine trust boundary every other service
+depends on, and notifications are event-driven rather than request/response.
+
+**Two frontends, on purpose, not by accident.** `apps/admin` is a plain React
+SPA — no BFF, each service called directly from the browser, CORS doing the
+real work. `apps/web` is Next.js with a BFF proxy — one entry point for all
+three services, no CORS needed at all since calls happen server-to-server.
+Building the same idea both ways is deliberate: it's what makes the "why
+Next.js over plain React" tradeoff a real, felt thing instead of a talking
+point memorized from a plan.
 
 ## Running locally
 
@@ -46,6 +62,9 @@ cd apps/academic-service && npm run dev      # http://localhost:4002
 # terminal 3
 cd apps/notification-service && npm run dev  # http://localhost:4003
 
-# terminal 4
+# terminal 4 — plain React admin (the one being actively built)
+cd apps/admin && npm run dev                 # http://localhost:5174
+
+# terminal 5 — Next.js public site + BFF (optional, for the SEO/proxy side)
 cd apps/web && npm run dev                   # http://localhost:3000
 ```

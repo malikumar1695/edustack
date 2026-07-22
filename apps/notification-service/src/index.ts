@@ -5,7 +5,11 @@ import express from "express";
 const app = express();
 const port = process.env.PORT ?? 4003;
 
-app.use(cors({ origin: process.env.WEB_ORIGIN ?? "http://localhost:3000" }));
+const allowedOrigins = (
+  process.env.ALLOWED_ORIGINS ?? "http://localhost:3000,http://localhost:5174"
+).split(",");
+
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 app.get("/health", (_req, res) => {

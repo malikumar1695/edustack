@@ -26,6 +26,8 @@ import ResultSuccess from "../pages/result/success";
 import TableList from "../pages/table-list";
 import Welcome from "../pages/Welcome";
 import Login from "../pages/user/login";
+import Register from "../pages/user/register";
+import RegisterResult from "../pages/user/register-result";
 
 // Every path below mirrors ant-design-pro-master/config/routes.ts. Routes
 // without a real page yet render <NotYetPorted /> so navigation and the
@@ -36,14 +38,8 @@ export default function AppRoutes() {
     <Routes>
       {/* config/routes.ts: path: '/user', layout: false */}
       <Route path="/user/login" element={<Login />} />
-      <Route
-        path="/user/register"
-        element={<NotYetPorted pageName="Register" />}
-      />
-      <Route
-        path="/user/register-result"
-        element={<NotYetPorted pageName="Register Result" />}
-      />
+      <Route path="/user/register" element={<Register />} />
+      <Route path="/user/register-result" element={<RegisterResult />} />
 
       {/* Everything else sits behind the ProLayout shell + auth guard */}
       <Route element={<AppLayout />}>

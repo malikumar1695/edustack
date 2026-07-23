@@ -190,29 +190,10 @@ export default defineConfig({
     { src: join(PUBLIC_PATH, 'scripts/loading.js'), async: true },
   ],
 
-  //================ Pro plugin configuration =================
-  plugins: ['@umijs/max-plugin-openapi', '@umijs/request-record'],
-
-  /**
-   * @name openAPI plugin configuration
-   * @description Generates services and mocks based on the OpenAPI spec, saving a lot of boilerplate code
-   * @doc https://pro.ant.design/docs/openapi/
-   */
-  openAPI: [
-    {
-      requestLibPath: "import { request } from '@umijs/max'",
-      // Or use the online version
-      // schemaPath: "https://gw.alipayobjects.com/os/antfincdn/M%24jrzTTYJN/oneapi.json"
-      schemaPath: join(__dirname, 'oneapi.json'),
-      mock: false,
-    },
-  ],
-
   tailwindcss: {},
 
   mock: {
     include: ['src/pages/**/_mock.ts'],
-    exclude: ['mock/requestRecord.mock.js'],
   },
   utoopack: {
     module: {
@@ -224,7 +205,6 @@ export default defineConfig({
       },
     },
   },
-  requestRecord: {},
   exportStatic: {},
   define: {
     'process.env.CI': process.env.CI,

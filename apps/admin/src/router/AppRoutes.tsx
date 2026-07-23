@@ -5,12 +5,20 @@ import Admin from "../pages/Admin";
 import AccountCenter from "../pages/account/center";
 import AccountSettings from "../pages/account/settings";
 import DashboardAnalysis from "../pages/dashboard/analysis";
+import DashboardMonitor from "../pages/dashboard/monitor";
+import DashboardWorkplace from "../pages/dashboard/workplace";
 import Exception403 from "../pages/exception/403";
 import Exception404 from "../pages/exception/404";
 import Exception500 from "../pages/exception/500";
 import AdvancedForm from "../pages/form/advanced-form";
 import BasicForm from "../pages/form/basic-form";
 import StepForm from "../pages/form/step-form";
+import BasicList from "../pages/list/basic-list";
+import CardList from "../pages/list/card-list";
+import SearchList from "../pages/list/search";
+import SearchApplications from "../pages/list/search/applications";
+import SearchArticles from "../pages/list/search/articles";
+import SearchProjects from "../pages/list/search/projects";
 import ProfileAdvanced from "../pages/profile/advanced";
 import ProfileBasic from "../pages/profile/basic";
 import ResultFail from "../pages/result/fail";
@@ -45,14 +53,8 @@ export default function AppRoutes() {
         <Route path="/admin" element={<Navigate to="/admin/sub-page" replace />} />
 
         <Route path="/dashboard/analysis" element={<DashboardAnalysis />} />
-        <Route
-          path="/dashboard/monitor"
-          element={<NotYetPorted pageName="Dashboard / Monitor" />}
-        />
-        <Route
-          path="/dashboard/workplace"
-          element={<NotYetPorted pageName="Dashboard / Workplace" />}
-        />
+        <Route path="/dashboard/monitor" element={<DashboardMonitor />} />
+        <Route path="/dashboard/workplace" element={<DashboardWorkplace />} />
         <Route
           path="/dashboard"
           element={<Navigate to="/dashboard/analysis" replace />}
@@ -63,31 +65,15 @@ export default function AppRoutes() {
         <Route path="/form/advanced-form" element={<AdvancedForm />} />
         <Route path="/form" element={<Navigate to="/form/basic-form" replace />} />
 
-        <Route
-          path="/list/search/articles"
-          element={<NotYetPorted pageName="List / Search / Articles" />}
-        />
-        <Route
-          path="/list/search/projects"
-          element={<NotYetPorted pageName="List / Search / Projects" />}
-        />
-        <Route
-          path="/list/search/applications"
-          element={<NotYetPorted pageName="List / Search / Applications" />}
-        />
-        <Route
-          path="/list/search"
-          element={<Navigate to="/list/search/articles" replace />}
-        />
+        <Route path="/list/search" element={<SearchList />}>
+          <Route index element={<Navigate to="articles" replace />} />
+          <Route path="articles" element={<SearchArticles />} />
+          <Route path="projects" element={<SearchProjects />} />
+          <Route path="applications" element={<SearchApplications />} />
+        </Route>
         <Route path="/list/table-list" element={<TableList />} />
-        <Route
-          path="/list/basic-list"
-          element={<NotYetPorted pageName="List / Basic List" />}
-        />
-        <Route
-          path="/list/card-list"
-          element={<NotYetPorted pageName="List / Card List" />}
-        />
+        <Route path="/list/basic-list" element={<BasicList />} />
+        <Route path="/list/card-list" element={<CardList />} />
         <Route path="/list" element={<Navigate to="/list/table-list" replace />} />
 
         <Route path="/profile/basic" element={<ProfileBasic />} />

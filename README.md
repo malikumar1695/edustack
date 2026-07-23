@@ -30,8 +30,14 @@ ilm/
 │   │                          attendance, grades (Postgres/Prisma) + free-text
 │   │                          teacher notes (MongoDB) + the GraphQL layer.
 │   │
-│   └── notification-service/  :4003 — Express + TS. Real-time alerts (Socket.io +
-│                              Redis pub/sub) when a grade or announcement lands.
+│   ├── notification-service/  :4003 — Express + TS. Real-time alerts (Socket.io +
+│   │                          Redis pub/sub) when a grade or announcement lands.
+│   │
+│   └── ant-design-pro-master/ Read-only reference. The original UmiJS Max
+│                              template every apps/admin page was ported from.
+│                              Not built, not run, not touched going forward —
+│                              kept only in case a ported page needs re-checking
+│                              against the original.
 │
 ├── README.md
 └── NOTES.md                   Running build log, updated every session.

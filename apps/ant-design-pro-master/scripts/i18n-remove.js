@@ -53,8 +53,8 @@ function toStrLiteral(text) {
     .replace(/'/g, "\\'")
     .replace(/\n/g, '\\n')
     .replace(/\r/g, '\\r')
-    .replace(/ /g, '\\u2028')
-    .replace(/ /g, '\\u2029')}'`;
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')}'`;
 }
 
 function resolveText(id, defaultMsg, localeMap) {
@@ -351,7 +351,7 @@ function processFile(filePath, localeMap) {
     return text;
   });
 
-  // ── 10. Simplify '中文' → 中文 produced by FormattedMessage in JSX text children
+  // ── 10. Simplify the quoted translated text produced by FormattedMessage in JSX text children
   content = content.replace(
     />(\s*)'([^'<]*?)'(\s*)<\//g,
     (_match, ws1, text, ws2) => {

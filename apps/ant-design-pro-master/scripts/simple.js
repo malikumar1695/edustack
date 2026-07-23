@@ -1,17 +1,17 @@
 /**
- * 精简脚本 - 将完整版精简为简单版
- * 执行 npm run simple 运行此脚本
+ * Simplify script - reduces the full version down to a simple version
+ * Run `npm run simple` to execute this script
  *
- * 此操作不可逆，会删除以下内容：
- * - 页面目录：dashboard, form, list/basic-list, list/card-list, list/search, profile, result, exception, account, user/register, user/register-result
- * - 替换路由配置为简单版
- * - 移除不再需要的依赖：@ant-design/plots, d3, topojson-client
+ * This operation is irreversible and deletes the following:
+ * - Page directories: dashboard, form, list/basic-list, list/card-list, list/search, profile, result, exception, account, user/register, user/register-result
+ * - Replaces the route configuration with the simple version
+ * - Removes dependencies that are no longer needed: @ant-design/plots, d3, topojson-client
  */
 
 const fs = require('node:fs');
 const path = require('node:path');
 
-// 需要删除的页面目录
+// Page directories to delete
 const pageDirsToDelete = [
   'src/pages/dashboard',
   'src/pages/form',
@@ -25,10 +25,10 @@ const pageDirsToDelete = [
   'src/pages/user/register-result',
 ];
 
-// 需要删除的 mock 文件
+// Mock files to delete
 const mockFilesToDelete = [];
 
-// 需要从 package.json 移除的依赖
+// Dependencies to remove from package.json
 const depsToRemove = ['@ant-design/plots', 'd3', 'topojson-client'];
 
 const devDepsToRemove = [
@@ -38,126 +38,126 @@ const devDepsToRemove = [
   'geojson',
 ];
 
-// 递归删除目录
+// Recursively delete a directory
 function deleteDir(dirPath) {
   if (fs.existsSync(dirPath)) {
     fs.rmSync(dirPath, { recursive: true, force: true });
-    console.log(`✓ 已删除目录: ${dirPath}`);
+    console.log(`✓ Deleted directory: ${dirPath}`);
   } else {
-    console.log(`- 目录不存在，跳过: ${dirPath}`);
+    console.log(`- Directory does not exist, skipping: ${dirPath}`);
   }
 }
 
-// 删除文件
+// Delete a file
 function deleteFile(filePath) {
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
-    console.log(`✓ 已删除文件: ${filePath}`);
+    console.log(`✓ Deleted file: ${filePath}`);
   } else {
-    console.log(`- 文件不存在，跳过: ${filePath}`);
+    console.log(`- File does not exist, skipping: ${filePath}`);
   }
 }
 
-// 替换路由配置
+// Replace the route configuration
 function replaceRoutes() {
   const simpleRoutesPath = 'config/routes.simple.ts';
   const routesPath = 'config/routes.ts';
 
   if (fs.existsSync(simpleRoutesPath)) {
-    // 读取简单版路由
+    // Read the simple version of the routes
     const simpleRoutes = fs.readFileSync(simpleRoutesPath, 'utf-8');
-    // 写入到 routes.ts
+    // Write it to routes.ts
     fs.writeFileSync(routesPath, simpleRoutes);
-    console.log(`✓ 已替换路由配置: ${routesPath}`);
-    // 删除简单版路由备份文件
+    console.log(`✓ Replaced route configuration: ${routesPath}`);
+    // Delete the simple routes backup file
     fs.unlinkSync(simpleRoutesPath);
-    console.log(`✓ 已删除备份文件: ${simpleRoutesPath}`);
+    console.log(`✓ Deleted backup file: ${simpleRoutesPath}`);
   } else {
-    console.log(`- 简单版路由配置不存在，跳过: ${simpleRoutesPath}`);
+    console.log(`- Simple route configuration does not exist, skipping: ${simpleRoutesPath}`);
   }
 }
 
-// 更新 package.json
+// Update package.json
 function updatePackageJson() {
   const pkgPath = 'package.json';
   const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
 
   let modified = false;
 
-  // 移除 dependencies
+  // Remove dependencies
   if (pkg.dependencies) {
     for (const dep of depsToRemove) {
       if (pkg.dependencies[dep]) {
         delete pkg.dependencies[dep];
-        console.log(`✓ 已移除依赖: ${dep}`);
+        console.log(`✓ Removed dependency: ${dep}`);
         modified = true;
       }
     }
   }
 
-  // 移除 devDependencies
+  // Remove devDependencies
   if (pkg.devDependencies) {
     for (const dep of devDepsToRemove) {
       if (pkg.devDependencies[dep]) {
         delete pkg.devDependencies[dep];
-        console.log(`✓ 已移除开发依赖: ${dep}`);
+        console.log(`✓ Removed dev dependency: ${dep}`);
         modified = true;
       }
     }
   }
 
-  // 移除 simple 脚本
+  // Remove the simple script
   if (pkg.scripts?.simple) {
     delete pkg.scripts.simple;
-    console.log('✓ 已移除 simple 脚本');
+    console.log('✓ Removed the simple script');
     modified = true;
   }
 
   if (modified) {
     fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
-    console.log('✓ 已更新 package.json');
+    console.log('✓ Updated package.json');
   } else {
-    console.log('- package.json 无需更新');
+    console.log('- No changes needed in package.json');
   }
 }
 
-// 主函数
+// Main function
 function main() {
   console.log('========================================');
-  console.log('  开始执行精简脚本');
+  console.log('  Starting the simplify script');
   console.log('========================================\n');
 
-  console.log('>>> 删除页面目录...');
+  console.log('>>> Deleting page directories...');
   for (const dir of pageDirsToDelete) {
     deleteDir(dir);
   }
 
-  console.log('\n>>> 删除 mock 文件...');
+  console.log('\n>>> Deleting mock files...');
   for (const file of mockFilesToDelete) {
     deleteFile(file);
   }
 
-  console.log('\n>>> 替换路由配置...');
+  console.log('\n>>> Replacing route configuration...');
   replaceRoutes();
 
-  console.log('\n>>> 更新 package.json...');
+  console.log('\n>>> Updating package.json...');
   updatePackageJson();
 
-  // 删除自身
-  console.log('\n>>> 清理精简脚本...');
+  // Delete this script itself
+  console.log('\n>>> Cleaning up the simplify script...');
   fs.unlinkSync(__filename);
-  console.log('✓ 已删除 scripts/simple.js');
+  console.log('✓ Deleted scripts/simple.js');
 
-  // 尝试删除 scripts 目录（如果为空）
+  // Try to delete the scripts directory if it's empty
   const scriptsDir = path.dirname(__filename);
   if (fs.readdirSync(scriptsDir).length === 0) {
     fs.rmdirSync(scriptsDir);
-    console.log('✓ 已删除空的 scripts 目录');
+    console.log('✓ Deleted the empty scripts directory');
   }
 
   console.log('\n========================================');
-  console.log('  精简完成！');
-  console.log('  请运行 npm install 更新依赖');
+  console.log('  Simplification complete!');
+  console.log('  Please run npm install to update dependencies');
   console.log('========================================');
 }
 

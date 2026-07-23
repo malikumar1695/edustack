@@ -520,7 +520,6 @@ Then run `/pro-upgrade` in Claude Code at the project root — AI will auto-diff
 #    { path: '/my-page', name: 'myPage', icon: 'file', component: './my-page' }
 
 # 3. Add i18n translations (for menu display)
-#    File: src/locales/zh-CN/menu.ts → menu.myPage: '我的页面'
 #    File: src/locales/en-US/menu.ts → menu.myPage: 'My Page'
 ```
 

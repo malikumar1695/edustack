@@ -34,3 +34,19 @@ Running notes for the 1hr/day sessions. Update at the end of every session: what
 - [ ] **S3 (Fri)** — Auth (NextAuth or hand-rolled JWT) with role field + RBAC middleware; login page redirects by role.
 
 **Done when:** live Vercel URL exists, four role logins land on four distinct dashboards.
+
+## Ant Design Pro → plain React port (apps/admin)
+
+Decision: after seeing that "simple react app, no fancy things" really meant it, we chose the full-port path — keep every demo page's UI, but rebuild the plumbing in `apps/admin` (Vite + React Router, no UmiJS Max) instead of hand-waving it away. This is a real multi-session migration, tracked as an ongoing checklist, not a single task.
+
+- [x] **Foundation** — `apps/admin` upgraded to antd v6 + `@ant-design/pro-components` v3 (React stays on 18, antd v6 only needs React ≥18, no bump needed). Built from scratch, since none of it exists without Umi:
+  - `context/AuthContext.tsx` — replaces `useModel('@@initialState')`. Ported the mock server's login rules (admin/user + `ant.design`, mobile always succeeds, 2s fake delay) from `mock/user.ts` faithfully, just backed by `localStorage` instead of an Express module-level variable.
+  - `router/menuRoutes.ts` + `router/resolveMenuIcons.tsx` — mirrors `config/routes.ts`'s nav structure. Real gotcha: Umi Max's layout plugin resolves `icon: 'home'`-style strings into actual `<HomeOutlined/>` components *before* handing routes to ProLayout — outside Umi that resolution never happens, so ProLayout just prints "home" as literal text. Wrote an explicit icon-name → component map to replace that step (explicit imports, not `import * as Icons`, since the wildcard import pulled the *entire* icon library into the bundle and cost ~1MB — dynamic property lookup defeats tree-shaking).
+  - `layouts/AppLayout.tsx` — hand-wired `<ProLayout>` + an auth-redirect `useEffect`, replacing Umi's automatic `layout` runtime config injection.
+  - `router/AppRoutes.tsx` — the full route tree from `config/routes.ts`, with `<NotYetPorted>` stubs for every page not yet ported, so navigation and the auth guard are testable end-to-end today even though only login is real.
+- [x] **user/login** ported — real bugs caught only by actually screenshotting it (not just build/lint passing):
+  1. `ProFormText`/`LoginForm`'s own built-in i18n defaulted to Chinese ("登录" on the submit button) — Umi's `antd: {}` plugin config was silently setting `ConfigProvider`'s locale to en-US; outside Umi that has to be explicit (`<ConfigProvider locale={enUS}>` from `antd/locale/en_US`).
+  2. (see icon gotcha above.)
+  - Simplified from the original: dropped the mobile/captcha login tab and the language-switcher (no i18n needed) — both genuinely dead weight, not lost fidelity.
+- [ ] Still pending, in rough priority order: Welcome/dashboard home, table-list (ProTable — highest value for Ilm's future CRUD), forms (basic/step/advanced), lists (basic/card/search), profile (basic/advanced), account (center/settings), result/exception pages, dashboard analysis/monitor/workplace (chart/map heavy), and a decision on chatbot (needs a real LLM backend to mean anything, ships with `@ant-design/x*` deps that only make sense if wired to one).
+- [ ] Once all pages are ported and verified: retire `apps/ant-design-pro-master` (keep as read-only reference or delete — decide then), update README's app list.

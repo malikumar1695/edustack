@@ -2,14 +2,20 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import NotYetPorted from "../components/NotYetPorted";
 import AppLayout from "../layouts/AppLayout";
 import Admin from "../pages/Admin";
+import AccountCenter from "../pages/account/center";
+import AccountSettings from "../pages/account/settings";
+import DashboardAnalysis from "../pages/dashboard/analysis";
 import Exception403 from "../pages/exception/403";
 import Exception404 from "../pages/exception/404";
 import Exception500 from "../pages/exception/500";
 import AdvancedForm from "../pages/form/advanced-form";
 import BasicForm from "../pages/form/basic-form";
 import StepForm from "../pages/form/step-form";
+import ProfileAdvanced from "../pages/profile/advanced";
+import ProfileBasic from "../pages/profile/basic";
 import ResultFail from "../pages/result/fail";
 import ResultSuccess from "../pages/result/success";
+import TableList from "../pages/table-list";
 import Welcome from "../pages/Welcome";
 import Login from "../pages/user/login";
 
@@ -38,10 +44,7 @@ export default function AppRoutes() {
         <Route path="/admin/sub-page" element={<Admin />} />
         <Route path="/admin" element={<Navigate to="/admin/sub-page" replace />} />
 
-        <Route
-          path="/dashboard/analysis"
-          element={<NotYetPorted pageName="Dashboard / Analysis" />}
-        />
+        <Route path="/dashboard/analysis" element={<DashboardAnalysis />} />
         <Route
           path="/dashboard/monitor"
           element={<NotYetPorted pageName="Dashboard / Monitor" />}
@@ -76,10 +79,7 @@ export default function AppRoutes() {
           path="/list/search"
           element={<Navigate to="/list/search/articles" replace />}
         />
-        <Route
-          path="/list/table-list"
-          element={<NotYetPorted pageName="List / Table List" />}
-        />
+        <Route path="/list/table-list" element={<TableList />} />
         <Route
           path="/list/basic-list"
           element={<NotYetPorted pageName="List / Basic List" />}
@@ -90,14 +90,8 @@ export default function AppRoutes() {
         />
         <Route path="/list" element={<Navigate to="/list/table-list" replace />} />
 
-        <Route
-          path="/profile/basic"
-          element={<NotYetPorted pageName="Profile / Basic" />}
-        />
-        <Route
-          path="/profile/advanced"
-          element={<NotYetPorted pageName="Profile / Advanced" />}
-        />
+        <Route path="/profile/basic" element={<ProfileBasic />} />
+        <Route path="/profile/advanced" element={<ProfileAdvanced />} />
         <Route
           path="/profile"
           element={<Navigate to="/profile/basic" replace />}
@@ -118,14 +112,8 @@ export default function AppRoutes() {
           element={<Navigate to="/exception/403" replace />}
         />
 
-        <Route
-          path="/account/center"
-          element={<NotYetPorted pageName="Account / Center" />}
-        />
-        <Route
-          path="/account/settings"
-          element={<NotYetPorted pageName="Account / Settings" />}
-        />
+        <Route path="/account/center" element={<AccountCenter />} />
+        <Route path="/account/settings" element={<AccountSettings />} />
         <Route
           path="/account"
           element={<Navigate to="/account/center" replace />}

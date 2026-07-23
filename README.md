@@ -8,10 +8,12 @@ Practice project: a multi-role student management system, built to close specifi
 ilm/
 ├── apps/
 │   ├── admin/                  :5174 — Vite + React + TS + React Router + Ant
-│   │                          Design. The actual working admin/dashboard UI —
-│   │                          plain client-side React, no framework underneath.
-│   │                          Calls the three services directly (no proxy);
-│   │                          each service's CORS config allows this origin.
+│   │                          Design + Ant Design Pro's ProComponents. The
+│   │                          admin/dashboard UI — plain client-side React, no
+│   │                          framework underneath (ported off UmiJS Max in
+│   │                          full — see NOTES.md). Calls the three services
+│   │                          directly (no proxy); each service's CORS config
+│   │                          allows this origin.
 │   │
 │   ├── web/                  Next.js 14 (App Router) + TS + Tailwind — the
 │   │                          public-facing side (catalog/announcements,

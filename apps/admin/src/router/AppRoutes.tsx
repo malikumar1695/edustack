@@ -1,6 +1,16 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import NotYetPorted from "../components/NotYetPorted";
 import AppLayout from "../layouts/AppLayout";
+import Admin from "../pages/Admin";
+import Exception403 from "../pages/exception/403";
+import Exception404 from "../pages/exception/404";
+import Exception500 from "../pages/exception/500";
+import AdvancedForm from "../pages/form/advanced-form";
+import BasicForm from "../pages/form/basic-form";
+import StepForm from "../pages/form/step-form";
+import ResultFail from "../pages/result/fail";
+import ResultSuccess from "../pages/result/success";
+import Welcome from "../pages/Welcome";
 import Login from "../pages/user/login";
 
 // Every path below mirrors ant-design-pro-master/config/routes.ts. Routes
@@ -23,12 +33,9 @@ export default function AppRoutes() {
 
       {/* Everything else sits behind the ProLayout shell + auth guard */}
       <Route element={<AppLayout />}>
-        <Route path="/welcome" element={<NotYetPorted pageName="Welcome" />} />
+        <Route path="/welcome" element={<Welcome />} />
 
-        <Route
-          path="/admin/sub-page"
-          element={<NotYetPorted pageName="Admin Sub-page" />}
-        />
+        <Route path="/admin/sub-page" element={<Admin />} />
         <Route path="/admin" element={<Navigate to="/admin/sub-page" replace />} />
 
         <Route
@@ -48,18 +55,9 @@ export default function AppRoutes() {
           element={<Navigate to="/dashboard/analysis" replace />}
         />
 
-        <Route
-          path="/form/basic-form"
-          element={<NotYetPorted pageName="Form / Basic Form" />}
-        />
-        <Route
-          path="/form/step-form"
-          element={<NotYetPorted pageName="Form / Step Form" />}
-        />
-        <Route
-          path="/form/advanced-form"
-          element={<NotYetPorted pageName="Form / Advanced Form" />}
-        />
+        <Route path="/form/basic-form" element={<BasicForm />} />
+        <Route path="/form/step-form" element={<StepForm />} />
+        <Route path="/form/advanced-form" element={<AdvancedForm />} />
         <Route path="/form" element={<Navigate to="/form/basic-form" replace />} />
 
         <Route
@@ -105,31 +103,16 @@ export default function AppRoutes() {
           element={<Navigate to="/profile/basic" replace />}
         />
 
-        <Route
-          path="/result/success"
-          element={<NotYetPorted pageName="Result / Success" />}
-        />
-        <Route
-          path="/result/fail"
-          element={<NotYetPorted pageName="Result / Fail" />}
-        />
+        <Route path="/result/success" element={<ResultSuccess />} />
+        <Route path="/result/fail" element={<ResultFail />} />
         <Route
           path="/result"
           element={<Navigate to="/result/success" replace />}
         />
 
-        <Route
-          path="/exception/403"
-          element={<NotYetPorted pageName="Exception / 403" />}
-        />
-        <Route
-          path="/exception/404"
-          element={<NotYetPorted pageName="Exception / 404" />}
-        />
-        <Route
-          path="/exception/500"
-          element={<NotYetPorted pageName="Exception / 500" />}
-        />
+        <Route path="/exception/403" element={<Exception403 />} />
+        <Route path="/exception/404" element={<Exception404 />} />
+        <Route path="/exception/500" element={<Exception500 />} />
         <Route
           path="/exception"
           element={<Navigate to="/exception/403" replace />}
@@ -151,7 +134,7 @@ export default function AppRoutes() {
         <Route path="/chatbot" element={<NotYetPorted pageName="Chatbot" />} />
 
         <Route path="/" element={<Navigate to="/welcome" replace />} />
-        <Route path="*" element={<NotYetPorted pageName="404" />} />
+        <Route path="*" element={<Exception404 />} />
       </Route>
     </Routes>
   );

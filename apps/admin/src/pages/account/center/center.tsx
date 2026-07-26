@@ -18,9 +18,9 @@ import {
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth, type CurrentUser } from "../../../context/AuthContext";
-import Applications from "./components/Applications";
-import Articles from "./components/Articles";
-import Projects from "./components/Projects";
+import Applications from "./components/Applications/Applications";
+import Articles from "./components/Articles/Articles";
+import Projects from "./components/Projects/Projects";
 import { getProjectNotice } from "./_mock";
 
 type tabKeyType = "articles" | "applications" | "projects";

@@ -4,8 +4,8 @@ import { Card, Col, Row, Table, Tooltip } from "antd";
 import type React from "react";
 import { formatNumber } from "../utils/format";
 import type { DataItem } from "../data";
-import NumberInfo from "./NumberInfo";
-import Trend from "./Trend";
+import NumberInfo from "./NumberInfo/NumberInfo";
+import Trend from "./Trend/Trend";
 
 const renderSearchUserSubtitle = () => (
   <span>

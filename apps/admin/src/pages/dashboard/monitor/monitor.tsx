@@ -3,10 +3,10 @@ import { GridContent } from "@ant-design/pro-components";
 import { Card, Col, Progress, Row, Skeleton, Statistic } from "antd";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { getTags } from "./_mock";
-import ActiveChart from "./components/ActiveChart";
+import ActiveChart from "./components/ActiveChart/ActiveChart";
 import { formatNumber } from "./utils/format";
 
-const MonitorMap = lazy(() => import("./components/Map"));
+const MonitorMap = lazy(() => import("./components/Map/Map"));
 
 const deadline = Date.now() + 1000 * 60 * 60 * 24 * 2 + 1000 * 30;
 

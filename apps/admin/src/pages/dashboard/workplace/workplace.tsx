@@ -6,7 +6,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import EditableLinkGroup from "./components/EditableLinkGroup";
+import EditableLinkGroup from "./components/EditableLinkGroup/EditableLinkGroup";
 import { getActivities, getProjectNotice, getWorkplaceChartData } from "./_mock";
 import type { ActivitiesType, CurrentUser } from "./data";
 

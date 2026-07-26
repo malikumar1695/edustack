@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
 import AvatarList from "../components/AvatarList";
 import StandardFormRow from "../components/StandardFormRow";
 import TagSelect from "../components/TagSelect";
-import { categoryOptions } from "../../mock";
+import { categoryOptions } from "../../mock/mock";
 import type { ListItemDataType } from "./data";
 import { queryFakeList } from "./mockData";
 

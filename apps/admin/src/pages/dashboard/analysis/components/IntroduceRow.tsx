@@ -4,9 +4,9 @@ import { Col, Progress, Row, Tooltip } from "antd";
 import { styles } from "../styles";
 import { formatNumber } from "../utils/format";
 import Yuan from "../utils/Yuan";
-import ChartCard from "./Charts/ChartCard";
-import Field from "./Charts/Field";
-import Trend from "./Trend";
+import ChartCard from "./Charts/ChartCard/ChartCard";
+import Field from "./Charts/Field/Field";
+import Trend from "./Trend/Trend";
 import type { DataItem } from "../data";
 
 const topColResponsiveProps = {

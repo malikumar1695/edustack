@@ -1,3 +1,1 @@
-node_modules
-dist
-.env
+# App-specific — common ignores live in the repo-root .gitignore

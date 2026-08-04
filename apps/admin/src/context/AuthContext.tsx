@@ -7,6 +7,9 @@ import {
   type ReactNode,
 } from "react";
 import { defaultUser } from "../mocks/user";
+import { jwtDecode } from "jwt-decode";
+import { authApi } from "../services/api";
+import { getApiErrorMessage } from "../services/errors";
 
 export type CurrentUser = {
   name?: string;
@@ -33,7 +36,15 @@ export type LoginResult = {
   status?: "ok" | "error";
   type?: string;
   currentAuthority?: string;
+  message?: string;
 };
+
+type AccessTokenClaims = {
+  sub: string;
+  username: string;
+  roles: string[];
+  exp: number;
+}
 
 const ACCESS_KEY = "ilm-admin-access";
 
@@ -68,11 +79,28 @@ async function fakeLogin(
   return { status: "error", type, currentAuthority: "guest" };
 }
 
-function readCurrentUser(): CurrentUser | undefined {
+const readCurrentUser = (): CurrentUser | undefined => {
   const access = localStorage.getItem(ACCESS_KEY);
   if (!access) return undefined;
-  return { ...defaultUser, access };
-}
+
+  try {
+    const claims = jwtDecode<AccessTokenClaims>(access);
+    if (claims.exp * 1000 < Date.now()) {
+
+      localStorage.removeItem(ACCESS_KEY);
+      return undefined;
+    }
+    return {
+      ...defaultUser,
+      userid: claims.sub,
+      name: claims.username,
+      access: claims.roles[0],
+    };
+  } catch (error) {
+    localStorage.removeItem(ACCESS_KEY);
+    return undefined;
+  }
+};
 
 type AuthContextValue = {
   currentUser: CurrentUser | undefined;
@@ -97,17 +125,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (username: string, password: string, type: string) => {
-      const result = await fakeLogin(username, password, type);
-      setCurrentUser(readCurrentUser());
-      return result;
+    async (username: string, password: string, type: string): Promise<LoginResult> => {
+      try {
+        const { data } = await authApi.post<{ accessToken: string }>("/auth/login",
+          { username, password }
+        );
+
+        localStorage.setItem(ACCESS_KEY, data.accessToken);
+        const user = readCurrentUser();
+        setCurrentUser(user);
+        return { status: "ok", type, currentAuthority: user?.access };
+      } catch (error) {
+        return { status: "error", type, currentAuthority: "guest", message: getApiErrorMessage(error) };
+      }
     },
     [],
   );
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(ACCESS_KEY);
-    setCurrentUser(undefined);
+  const logout = useCallback(async () => {
+    try {
+      await authApi.post("/auth/logout");
+    } catch {
+
+    }
+    finally {
+      localStorage.removeItem(ACCESS_KEY);
+      setCurrentUser(undefined);
+    }
   }, []);
 
   return (

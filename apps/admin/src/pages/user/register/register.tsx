@@ -1,20 +1,18 @@
 import {
   App,
   Button,
-  Col,
   Form,
   Input,
   Popover,
   Progress,
-  Row,
   Select,
-  Space,
-  theme,
+  theme
 } from "antd";
 import type { Store } from "antd/es/form/interface";
 import { useEffect, useState, type FC } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { fakeRegister } from "./service";
+import { register } from "./service";
+import { getApiErrorMessage } from "../../../services/errors";
 
 const FormItem = Form.Item;
 const { Option } = Select;
@@ -38,10 +36,10 @@ const getPasswordStatus = (value?: string) => {
 const PasswordProgress: FC<{ value?: string }> = ({ value }) => {
   const passwordStatus = getPasswordStatus(value);
   return value?.length ? (
-    <div style={{ marginTop: 10 }}>
+    <div style={{ marginTop: 1 }}>
       <Progress
         status={passwordProgressMap[passwordStatus]}
-        size={6}
+        size={10}
         percent={value.length * 10 > 100 ? 100 : value.length * 10}
         showInfo={false}
       />
@@ -67,6 +65,8 @@ const Register: FC = () => {
   };
 
   const [form] = Form.useForm();
+  const password = Form.useWatch("password", form);
+  const passwordStatus = getPasswordStatus(password);
 
   useEffect(() => {
     document.title = "Register - Ant Design Pro";
@@ -95,18 +95,17 @@ const Register: FC = () => {
   const onFinish = async (values: Store) => {
     setSubmitting(true);
     try {
-      const payload = {
-        mail: values.email,
-        password: values.password,
-        confirm: values.confirm,
-        mobile: values.mobile,
-        captcha: values.captcha,
-        prefix: values.prefix,
-      };
-      const data = await fakeRegister(payload);
+
+      const data = await register({ username: values.username, password: values.password });
       if (data.status === "ok") {
         message.success("Registration successful!");
-        navigate(`/user/register-result?account=${values.email}`);
+        navigate("/", { replace: true });
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        message.error(getApiErrorMessage(error, "Registration failed"));
+      } else {
+        message.error("Registration failed — unknown error");
       }
     } finally {
       setSubmitting(false);
@@ -120,37 +119,35 @@ const Register: FC = () => {
     return Promise.resolve();
   };
 
+  useEffect(() => {
+    setVisible(!!password);
+  }, [password]);
+
   const checkPassword = (_: unknown, value: string) => {
     if (!value) {
-      setVisible(false);
       return Promise.reject(new Error("Please enter a password!"));
     }
-    if (!open) setVisible(true);
-    setPopover(!popover);
-    if (value.length < 6) {
-      return Promise.reject(new Error(""));
-    }
-    if (value && confirmDirty) {
-      form.validateFields(["confirm"]);
+    if (value.length < 5) {
+      return Promise.reject(new Error("Password must be at least 5 characters"));
     }
     return Promise.resolve();
   };
 
-  const password = Form.useWatch("password", form);
-  const passwordStatus = getPasswordStatus(password);
+
 
   return (
     <div style={{ width: 368, margin: "0 auto" }}>
       <h3 style={{ marginBottom: 20, fontSize: 16 }}>Register</h3>
-      <Form form={form} name="UserRegister" onFinish={onFinish}>
+      <Form form={form} name="UserRegister" onFinish={onFinish}
+        onFinishFailed={(error) => console.log("Form submission failed:", error)}>
         <FormItem
-          name="email"
+          name="username"
           rules={[
-            { required: true, message: "Please enter an email address!" },
-            { type: "email", message: "Invalid email address format!" },
+            { required: true, message: "Please enter a username!" },
+            { min: 3, max: 64, message: "Username must be between 3 and 64 characters!" },
           ]}
         >
-          <Input size="large" placeholder="Email" />
+          <Input size="large" placeholder="Username" />
         </FormItem>
         <Popover
           content={
@@ -159,8 +156,8 @@ const Register: FC = () => {
                 {passwordStatusMap[passwordStatus]}
                 <PasswordProgress value={password} />
                 <div style={{ marginTop: 10 }}>
-                  Please enter at least 6 characters. Please don&apos;t use an
-                  easily guessed password.
+                  Please enter at least 5 characters. Please don&apos;t use an easily
+                  guessed password.
                 </div>
               </div>
             )
@@ -169,17 +166,19 @@ const Register: FC = () => {
           placement="right"
           open={open}
         >
-          <FormItem
-            name="password"
-            style={{ marginBottom: 24 }}
-            rules={[{ validator: checkPassword }]}
-          >
-            <Input
-              size="large"
-              type="password"
-              placeholder="At least 6 characters, case-sensitive"
-            />
-          </FormItem>
+          <div>
+            <FormItem
+              name="password"
+              style={{ marginBottom: 24 }}
+              rules={[{ validator: checkPassword }]}
+            >
+              <Input
+                size="large"
+                type="password"
+                placeholder="At least 5 characters, case-sensitive"
+              />
+            </FormItem>
+          </div>
         </Popover>
         <FormItem
           name="confirm"
@@ -190,7 +189,7 @@ const Register: FC = () => {
         >
           <Input size="large" type="password" placeholder="Confirm password" />
         </FormItem>
-        <FormItem
+        {/* <FormItem
           name="mobile"
           rules={[
             { required: true, message: "Please enter a phone number!" },
@@ -226,7 +225,7 @@ const Register: FC = () => {
               {count ? `${count} s` : "Get verification code"}
             </Button>
           </Col>
-        </Row>
+        </Row> */}
         <FormItem>
           <div
             style={{
@@ -249,7 +248,7 @@ const Register: FC = () => {
           </div>
         </FormItem>
       </Form>
-    </div>
+    </div >
   );
 };
 

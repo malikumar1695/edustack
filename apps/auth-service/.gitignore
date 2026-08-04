@@ -1,3 +1,8 @@
-node_modules
-dist
-.env
+# App-specific — common ignores live in the repo-root .gitignore
+
+# Prisma generated client (regenerated from schema via `prisma generate`)
+/prisma/generated/
+/src/generated/
+
+# Signing keys — never commit private key material
+/keys/*.pem

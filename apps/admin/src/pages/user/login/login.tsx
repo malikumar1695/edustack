@@ -12,7 +12,7 @@ import {
 } from "@ant-design/pro-components";
 import { Alert, App, Button, Tabs } from "antd";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Footer from "../../../components/Footer";
 import { useAuth, type LoginResult } from "../../../context/AuthContext";
 
@@ -78,6 +78,10 @@ export default function Login() {
     setUserLoginState(result);
   };
 
+  const onRegisterClick = (event: React.MouseEvent<HTMLElement>) => {
+    navigate("/user/register");
+  };
+
   return (
     <div
       style={{
@@ -114,7 +118,9 @@ export default function Login() {
           {userLoginState.status === "error" && (
             <Alert
               style={{ marginBottom: 24 }}
-              message="Incorrect account or password (admin/ant.design)"
+              message={
+                userLoginState.message ?? "Incorrect username or password"
+              }
               type="error"
               showIcon
             />
@@ -134,12 +140,15 @@ export default function Login() {
           />
 
           <div style={{ marginBottom: 24 }}>
-            <ProFormCheckbox noStyle name="autoLogin">
+            {/* <ProFormCheckbox noStyle name="autoLogin">
               Auto login
-            </ProFormCheckbox>
+            </ProFormCheckbox> */}
             <Button type="link" style={{ float: "right", padding: 0 }}>
               Forgot password
             </Button>
+            <Link to="/user/register" style={{ float: "left" }}>
+              Register
+            </Link>
           </div>
         </LoginForm>
       </div>

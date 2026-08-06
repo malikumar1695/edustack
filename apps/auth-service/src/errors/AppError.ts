@@ -16,7 +16,10 @@ export class ValidationError extends AppError {
     }
 }
 
-
 export class RefreshTokenMissingError extends AppError {
     constructor() { super("Refresh token missing", 401, "REFRESH_TOKEN_MISSING"); }
+}
+
+export class RefreshTokenReuseDetectedError extends AppError {
+    constructor() { super("Refresh token reuse detected", 401, "REFRESH_TOKEN_REUSE_DETECTED"); }
 }

@@ -21,6 +21,7 @@ accountRouter.post("/login", loginRateLimiter, validateBody(LoginDto), async (re
     const { username, password } = req.body as LoginDto;
     const { accessToken, refreshToken } = await authService.login(username, password);
     res.cookie(REFRESH_COOKIE, refreshToken, cookieOptions);
+    req.log.info({ username }, "user logged in");
     res.json({ accessToken });
 });
 
@@ -29,6 +30,7 @@ accountRouter.post("/register", registerRateLimiter, validateBody(LoginDto), asy
     const { username, password } = req.body as LoginDto;
     const { accessToken, refreshToken } = await authService.register(username, password);
     res.cookie(REFRESH_COOKIE, refreshToken, cookieOptions);
+    req.log.info({ username }, "user registered");
     res.status(201).json({ accessToken });
 
 });
@@ -40,6 +42,7 @@ accountRouter.post("/refresh", async (req, res) => {
 
     const { accessToken, refreshToken } = await authService.refresh(token);
     res.cookie(REFRESH_COOKIE, refreshToken, cookieOptions);
+    req.log.info("token refreshed");
     res.json({ accessToken });
 
 });
@@ -49,6 +52,7 @@ accountRouter.post("/logout", async (req, res) => {
     if (token) {
         await authService.logout(token);
         res.clearCookie(REFRESH_COOKIE, cookieOptions);
+        req.log.info("user logged out");
     }
     res.status(204).send();
 });

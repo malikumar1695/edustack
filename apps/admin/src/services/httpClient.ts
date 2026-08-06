@@ -1,4 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
+import { logger } from "../lib/logger";
 
 /**
  * Shared key so the auth flow and every HTTP client agree on where the
@@ -37,6 +38,13 @@ export function createHttpClient(baseURL: string) {
   client.interceptors.response.use(
     (response) => response,
     (error: AxiosError) => {
+
+      logger.error("api request failed", {
+        status: error.response?.status,
+        url: error.config?.url,
+        requestId: error.response?.headers?.["x-request-id "]
+      });
+      
       if (error.response?.status === 401) {
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         if (window.location.pathname !== LOGIN_PATH) {

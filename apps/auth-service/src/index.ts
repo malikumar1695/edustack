@@ -5,6 +5,8 @@ import express from "express";
 import "express-async-errors";
 import { accountRouter } from "./controllers/account.controller";
 import { errorHandler } from "./middlewares/error.middleware";
+import { requestLogger } from "./middlewares/request-logger.middleware";
+import { logger } from "./lib/logger";
 
 const app = express();
 const port = process.env.PORT ?? 4001;
@@ -17,6 +19,7 @@ const allowedOrigins = (
 ).split(",");
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(requestLogger);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -28,5 +31,5 @@ app.use("/auth", accountRouter);
 app.use(errorHandler);
 
 app.listen(port, () => {
-  console.log(`auth-service listening on http://localhost:${port}`);
+  logger.info({ port }, `auth-service listening`);
 });

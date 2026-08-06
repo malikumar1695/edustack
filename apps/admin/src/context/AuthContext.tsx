@@ -10,6 +10,7 @@ import { defaultUser } from "../mocks/user";
 import { jwtDecode } from "jwt-decode";
 import { authApi } from "../services/api";
 import { getApiErrorMessage } from "../services/errors";
+import { logger } from "../lib/logger";
 
 export type CurrentUser = {
   name?: string;
@@ -134,8 +135,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(ACCESS_KEY, data.accessToken);
         const user = readCurrentUser();
         setCurrentUser(user);
+        logger.info("login success", { userid: user?.userid });
         return { status: "ok", type, currentAuthority: user?.access };
       } catch (error) {
+        logger.warn("login failed", { message: getApiErrorMessage(error) });
         return { status: "error", type, currentAuthority: "guest", message: getApiErrorMessage(error) };
       }
     },
@@ -145,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await authApi.post("/auth/logout");
+       logger.info("logout succeeded");
     } catch {
 
     }

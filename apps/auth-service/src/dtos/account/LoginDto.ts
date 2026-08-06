@@ -6,7 +6,7 @@ export class LoginDto {
     username!: string;
 
     @IsString()
-    @Length(8, 128)
+    @Length(5, 128)
     password!: string;
 
     

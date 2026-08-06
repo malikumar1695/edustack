@@ -6,7 +6,10 @@ export const loginRateLimiter = rateLimit({
     limit: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { message: "Too many login attempts from this IP, please try again after 15 minutes." }
+    handler: (req, res) => {
+        req.log.warn({ ip: req.ip }, "login rate limit exceeded");
+        res.status(429).json({ message: "Too many login attempts from this IP, please try again after 15 minutes." });
+    }
 })
 
 export const registerRateLimiter = rateLimit({
@@ -14,5 +17,10 @@ export const registerRateLimiter = rateLimit({
     limit: 5,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { message: "Too many registration attempts from this IP, please try again after 1 hour." }
-})
+    handler: (req, res) => {
+        req.log.warn({ ip: req.ip }, "register rate limit exceeded");
+        res.status(429).json({
+            message: "Too many registration attempts from this IP, please try again after 1 hour."
+        });
+    }
+});

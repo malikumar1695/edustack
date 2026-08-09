@@ -4,7 +4,7 @@ import * as userRepo from "../repositories/user.repository";
 import { hashPassword, verifyPassword } from "../utils/password";
 import * as tokenRepo from "../repositories/refresh-token.repository";
 import { Prisma } from "../../prisma/generated";
-import { AppError } from "../errors/AppError";
+import { AppError, RefreshTokenReuseDetectedError } from "../errors/AppError";
 
 export class InvalidCredentialsError extends AppError {
     constructor() { super("Invalid username or password", 401, "INVALID_CREDENTIALS"); }
@@ -47,7 +47,7 @@ export const refresh = async (refreshToken: string): Promise<{ accessToken: stri
     if (stored.revokedAt) {
         // token reuse: someone is trying to use a refresh token that has already been used
         await tokenRepo.revokeAllForUser(stored.userId);
-        throw new InvalidCredentialsError();
+        throw new RefreshTokenReuseDetectedError();
     }
 
     const newRefreshToken = await tokenRepo.rotateRefreshToken(stored.id, stored.userId);

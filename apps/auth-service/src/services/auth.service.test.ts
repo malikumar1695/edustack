@@ -13,11 +13,6 @@ vi.mock("../config/jwt", () => ({
     refreshTokenExpiry: vi.fn(() => new Date(Date.now() + 3600_000)),
 }));
 
-vi.mock("../utils/password", () => ({
-    hashPassword: vi.fn(async () => "hashed"),
-    verifyPassword: vi.fn(async () => true),
-}));
-
 describe("auth.service login", () => {
     beforeEach(() => vi.resetAllMocks());
 

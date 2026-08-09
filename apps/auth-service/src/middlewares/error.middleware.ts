@@ -11,7 +11,8 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
             error: {
                 code: err.code,
                 message: err.message,
-                details: err.details
+                details: err.details,
+                requestId
             }
         });
         return;
@@ -19,7 +20,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     if (err instanceof AppError) {
         req.log.warn({ code: err.code }, err.message);
         res.status(err.statusCode).json({
-            error: { code: err.code, message: err.message }
+            error: { code: err.code, message: err.message, requestId }
         });
         return;
     }

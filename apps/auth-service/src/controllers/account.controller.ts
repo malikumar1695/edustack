@@ -6,6 +6,7 @@ import { validateBody } from "../middlewares/validate.middleware";
 import * as authService from "../services/auth.service";
 import { UsernameTakenError } from "../services/auth.service";
 import { RefreshTokenMissingError } from "../errors/AppError";
+import { RegisterDto } from "../dtos/account/RegisterDto";
 
 export const accountRouter = Router();
 
@@ -25,9 +26,9 @@ accountRouter.post("/login", loginRateLimiter, validateBody(LoginDto), async (re
     res.json({ accessToken });
 });
 
-accountRouter.post("/register", registerRateLimiter, validateBody(LoginDto), async (req, res) => {
+accountRouter.post("/register", registerRateLimiter, validateBody(RegisterDto), async (req, res) => {
 
-    const { username, password } = req.body as LoginDto;
+    const { username, password } = req.body as RegisterDto;
     const { accessToken, refreshToken } = await authService.register(username, password);
     res.cookie(REFRESH_COOKIE, refreshToken, cookieOptions);
     req.log.info({ username }, "user registered");

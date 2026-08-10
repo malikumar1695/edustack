@@ -1,0 +1,7 @@
+model Permission {
+    id       String           @id @default(uuid())
+    resource String // "course"
+    action   String // "create", "read", "update", "delete"
+    name     String           @unique // "course:read" 
+    roles    RolePermission[]
+}

@@ -2,7 +2,7 @@ model User {
   id                  String        @id @default(uuid())
   username            String        @unique
   passwordHash        String
-  roles               String[]      @default(["user"])
+  roles               UserRole[]    
   failedLoginAttempts Int           @default(0)
   lockedUntil         DateTime?
   createdAt           DateTime      @default(now())

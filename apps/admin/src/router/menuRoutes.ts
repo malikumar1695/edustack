@@ -97,6 +97,7 @@ export const menuRoutes: MenuRoute[] = [
     name: "Account",
     icon: "user",
     routes: [
+      { path: "/account/users", name: "Users", icon: "user" },
       { path: "/account/center", name: "Center", icon: "user" },
       { path: "/account/settings", name: "Settings", icon: "setting" },
     ],

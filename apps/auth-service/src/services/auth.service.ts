@@ -33,7 +33,7 @@ export const login = async (username: string, password: string): Promise<{ acces
 
     await userRepo.resetFailedLoginAttempts(user.id);
 
-    const accessToken = signAccessToken({ sub: user.id, username: user.username, roles: user.roles });
+    const accessToken = signAccessToken({ sub: user.id, username: user.username, roles: user.roles.map(r => r.role.name) });
     const refreshToken = await tokenRepo.issueRefreshToken(user.id);
 
     return { accessToken, refreshToken };
@@ -54,7 +54,7 @@ export const refresh = async (refreshToken: string): Promise<{ accessToken: stri
     const user = await userRepo.findUserById(stored.userId);
     if (!user) throw new InvalidCredentialsError();
 
-    const accessToken = signAccessToken({ sub: user.id, username: user.username, roles: user.roles });
+    const accessToken = signAccessToken({ sub: user.id, username: user.username, roles: user.roles.map(r => r.role.name) });
 
     return { accessToken, refreshToken: newRefreshToken };
 }
@@ -77,7 +77,7 @@ export const register = async (username: string, password: string): Promise<{ ac
         throw error;
     }
 
-    const accessToken = signAccessToken({ sub: user.id, username: user.username, roles: user.roles });
+    const accessToken = signAccessToken({ sub: user.id, username: user.username, roles: user.roles.map(r => r.role.name) });
     const refreshToken = await tokenRepo.issueRefreshToken(user.id);
 
     return { accessToken, refreshToken };

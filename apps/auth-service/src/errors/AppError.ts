@@ -23,3 +23,11 @@ export class RefreshTokenMissingError extends AppError {
 export class RefreshTokenReuseDetectedError extends AppError {
     constructor() { super("Refresh token reuse detected", 401, "REFRESH_TOKEN_REUSE_DETECTED"); }
 }
+
+export class UnauthorizedError extends AppError {
+    constructor(message = "Authentication required") { super(message, 401, "UNAUTHORIZED"); }
+}
+
+export class ForbiddenError extends AppError {
+    constructor(message = "Insufficient permissions") { super(message, 403, "FORBIDDEN"); }
+}

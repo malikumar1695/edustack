@@ -26,15 +26,15 @@ accountRouter.post("/login", loginRateLimiter, validateBody(LoginDto), async (re
     res.json({ accessToken });
 });
 
-accountRouter.post("/register", registerRateLimiter, validateBody(RegisterDto), async (req, res) => {
+// accountRouter.post("/register", registerRateLimiter, validateBody(RegisterDto), async (req, res) => {
 
-    const { username, password } = req.body as RegisterDto;
-    const { accessToken, refreshToken } = await authService.register(username, password);
-    res.cookie(REFRESH_COOKIE, refreshToken, cookieOptions);
-    req.log.info({ username }, "user registered");
-    res.status(201).json({ accessToken });
+//     const { username, password } = req.body as RegisterDto;
+//     const { accessToken, refreshToken } = await authService.register(username, password);
+//     res.cookie(REFRESH_COOKIE, refreshToken, cookieOptions);
+//     req.log.info({ username }, "user registered");
+//     res.status(201).json({ accessToken });
 
-});
+// });
 accountRouter.post("/refresh", async (req, res) => {
     const token = req.cookies?.[REFRESH_COOKIE];
     if (!token) {

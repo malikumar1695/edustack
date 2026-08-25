@@ -1,4 +1,5 @@
 import { prisma } from "../src/lib/prisma";
+import { hashPassword } from "../src/utils/password";
 
 
 const ROLE_NAMES = ["admin", "teacher", "student", "parents"];
@@ -64,12 +65,29 @@ const main = async () => {
 
     console.log(`Seeded ${ROLE_NAMES.length} roles and ${ALL_PERMISSIONS.length} permissions.`);
 
+    const adminUser = await prisma.user.upsert({
+        where: { username: "admin" },
+        update: {},
+        create: {
+            username: "admin",
+            passwordHash: await hashPassword("admin"),
+        },
+    });
+
+    const adminRoleId = roleIdByName.get("admin")!;
+    await prisma.userRole.upsert({
+        where: { userId_roleId: { userId: adminUser.id, roleId: adminRoleId } },
+        update: {},
+        create: { userId: adminUser.id, roleId: adminRoleId },
+    });
+
+    console.log(`Seeded admin user "${adminUser.username}".`);
 };
 
 main()
     .catch((e) => {
         console.error(e);
-        process.exit(1);
+        process.exitCode = 1;
     })
     .finally(async () => {
         await prisma.$disconnect();

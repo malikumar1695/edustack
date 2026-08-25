@@ -7,6 +7,7 @@ import { accountRouter } from "./controllers/account.controller";
 import { errorHandler } from "./middlewares/error.middleware";
 import { requestLogger } from "./middlewares/request-logger.middleware";
 import { logger } from "./lib/logger";
+import { userRouter } from "./controllers/user.controller";
 
 const app = express();
 const port = process.env.PORT ?? 4001;
@@ -28,6 +29,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/auth", accountRouter);
+app.use("/users", userRouter);
 app.use(errorHandler);
 
 app.listen(port, () => {

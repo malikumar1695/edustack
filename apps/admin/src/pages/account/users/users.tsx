@@ -1,71 +1,38 @@
-import type {
-  ActionType,
-  ProColumns
-} from "@ant-design/pro-components";
-import {
-  PageContainer,
-  ProTable
-} from "@ant-design/pro-components";
+import type { ActionType, ProColumns } from "@ant-design/pro-components";
+import { PageContainer, ProTable } from "@ant-design/pro-components";
 import { Button, message, Tag } from "antd";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { authApi } from "../../../services/api";
 import { getApiErrorMessage } from "../../../services/errors";
-import { default as CreateForm, default as UserForm } from "./components/UserForm";
-
-type UserListItem = {
-  id: string;
-  username: string;
-  createdAt: Date;
-  updatedAt: Date;
-  locked: boolean;
-  roles: {
-    role: { id: string, name: string };
-  }[];
-}
+import UserForm from "./components/UserForm";
+import type { UserListItem } from "./types";
 
 const Users: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);
-
-  const [showDetail, setShowDetail] = useState<boolean>(false);
-  const [users, setUsers] = useState<UserListItem[]>([]);
-  const [currentRow, setCurrentRow] = useState<UserListItem>();
-  const [selectedRowsState, setSelectedRows] = useState<UserListItem[]>([]);
-  const [editingUser, setEditingUser] = useState<UserListItem | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
-  const [loading, setLoading] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserListItem | null>(null);
 
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const res = await authApi.get("/users");
-      const users = res.data;
-      setUsers(users);
-      actionRef.current?.reload?.();
-    };
-    fetchUsers();
-  }, []);
+  const reloadTable = () => actionRef.current?.reload();
 
   const columns: ProColumns<UserListItem>[] = [
     {
       title: "User Name",
-      dataIndex: "username"
+      dataIndex: "username",
     },
     {
       title: "Roles",
       dataIndex: "roles",
-      render: (_, record) => record.roles.map((r) => <Tag key={r.role.id}>{r.role.name}</Tag>),
+      render: (_, record) => record.roles.map((role) => <Tag key={role.id}>{role.name}</Tag>),
     },
     {
       title: "Created",
       dataIndex: "createdAt",
       valueType: "dateTime",
-      sorter: true,
     },
     {
       title: "Updated",
       dataIndex: "updatedAt",
       valueType: "dateTime",
-      sorter: true,
     },
     {
       title: "Status",
@@ -81,36 +48,33 @@ const Users: React.FC = () => {
           Edit
         </Button>,
       ],
-    }
-
-
+    },
   ];
-
 
   return (
     <PageContainer>
       {contextHolder}
-      <ProTable<UserListItem, { current?: number; pageSize?: number }>
+      <ProTable<UserListItem>
         headerTitle="Users"
         actionRef={actionRef}
         rowKey="id"
-        search={{
-          labelWidth: 120,
-        }}
-        toolBarRender={() => [
-          <CreateForm key="create" reload={actionRef.current?.reload} />,
-        ]}
-        request={async () => {
+        // No search form yet: auth-service has no filtering, so rendering
+        // filter inputs would be a control that silently does nothing.
+        search={false}
+        toolBarRender={() => [<UserForm key="create" reload={reloadTable} />]}
+        request={async (params) => {
           try {
-            const res = await authApi.get("/users");
-            return { data: res.data, success: true };
+            const res = await authApi.get("/users", {
+              params: { current: params.current, pageSize: params.pageSize },
+            });
+            return { data: res.data.data, total: res.data.total, success: true };
           } catch (error) {
             messageApi.error(getApiErrorMessage(error));
-            return { data: [], success: false };
+            return { data: [], total: 0, success: false };
           }
-
         }}
-        columns={columns} />
+        columns={columns}
+      />
 
       {editingUser && (
         <UserForm
@@ -118,7 +82,7 @@ const Users: React.FC = () => {
           user={editingUser}
           open
           onClose={() => setEditingUser(null)}
-          reload={actionRef.current?.reload}
+          reload={reloadTable}
         />
       )}
     </PageContainer>

@@ -28,7 +28,7 @@ describe("auth.service login", () => {
             username: "umer",
             passwordHash: await hashPassword("correct"),
             lockedUntil: new Date(Date.now() + 60000), // locked for 60 seconds
-            roles: ["user"]
+            roles: [{ role: { name: "user" } }]
         } as any);
         await expect(authService.login("umer", "correct")).rejects.toThrowError(authService.AccountLockedError);
     });
@@ -39,7 +39,7 @@ describe("auth.service login", () => {
             username: "umer",
             passwordHash: await hashPassword("correct"),
             lockedUntil: null,
-            roles: ["user"]
+            roles: [{ role: { name: "user" } }]
         } as any);
         await expect(authService.login("umer", "wrongpassword")).rejects.toThrowError(authService.InvalidCredentialsError);
     })
@@ -50,7 +50,7 @@ describe("auth.service login", () => {
             username: "umer",
             passwordHash: await hashPassword("correct"),
             lockedUntil: null,
-            roles: ["user"],
+            roles: [{ role: { name: "user" } }],
         } as any);
 
         vi.mocked(tokenRepo.issueRefreshToken).mockResolvedValue("new-refresh-token");

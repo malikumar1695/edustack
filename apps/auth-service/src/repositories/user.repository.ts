@@ -100,18 +100,25 @@ export const createUserWithRole = async (username: string, passwordHash: string,
     });
 }
 
-export const listUsers = async () => {
-    return await prisma.user.findMany({
-        select: {
-            id: true,
-            username: true,
-            createdAt: true,
-            updatedAt: true,
-            lockedUntil: true,
-            roles: { select: { role: { select: { name: true } } } }
-        },
-        orderBy: { createdAt: "desc" }
-    });
+export const listUsers = async (skip: number, take: number) => {
+    const [data, total] = await prisma.$transaction([
+        prisma.user.findMany({
+            select: {
+                id: true,
+                username: true,
+                createdAt: true,
+                updatedAt: true,
+                lockedUntil: true,
+                roles: { select: { role: { select: { id: true, name: true } } } }
+            },
+            orderBy: { createdAt: "desc" },
+            skip,
+            take
+        }),
+        prisma.user.count()
+    ]);
+
+    return { data, total };
 }
 
 export const listRoles = async () => {

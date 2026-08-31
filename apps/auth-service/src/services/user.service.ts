@@ -1,7 +1,6 @@
 import { Prisma } from "../../prisma/generated";
 import { InvalidRoleError } from "../errors/AppError";
 import * as userRepo from "../repositories/user.repository";
-import { Role } from "../types/Role";
 import { hashPassword } from "../utils/password";
 import { UsernameTakenError } from "./auth.service";
 
@@ -26,16 +25,20 @@ export const createUser = async (username: string, password: string, roles: stri
         throw error;
     };
 }
-export const listUsers = async () => {
-    const users = await userRepo.listUsers();
-    return users.map((u) => ({
-        id: u.id,
-        username: u.username,
-        createdAt: u.createdAt,
-        updatedAt: u.updatedAt,
-        locked: Boolean(u.lockedUntil && u.lockedUntil > new Date()),
-        roles: u.roles,
-    }));
+export const listUsers = async (page: number, pageSize: number) => {
+    const { data, total } = await userRepo.listUsers((page - 1) * pageSize, pageSize);
+
+    return {
+        data: data.map((u) => ({
+            id: u.id,
+            username: u.username,
+            createdAt: u.createdAt,
+            updatedAt: u.updatedAt,
+            locked: Boolean(u.lockedUntil && u.lockedUntil > new Date()),
+            roles: u.roles.map((r) => r.role),
+        })),
+        total,
+    };
 };
 
 export const listRoles = async () => {

@@ -10,12 +10,17 @@ export const userRouter = Router();
 
 userRouter.use(authenticate, requireRole("admin"));
 
-userRouter.get("/", async (req, res) => {
-    res.json(await userService.listUsers());
-});
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
 
-userRouter.get("/getroles", async (req, res) => {
-    res.json(await userService.listRoles());
+userRouter.get("/", async (req, res) => {
+    const page = Math.max(1, Number(req.query.current) || 1);
+    const pageSize = Math.min(
+        MAX_PAGE_SIZE,
+        Math.max(1, Number(req.query.pageSize) || DEFAULT_PAGE_SIZE),
+    );
+
+    res.json(await userService.listUsers(page, pageSize));
 });
 
 userRouter.post("/", validateBody(CreateUserDto), async (req, res) => {

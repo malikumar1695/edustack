@@ -3,10 +3,10 @@ import { ArrayNotEmpty, IsArray, IsBoolean, IsOptional, IsUUID } from "class-val
 export class UpdateUserDto {
 
     @IsBoolean()
-    isActive?: boolean;
+    isActive!: boolean;
 
     @IsArray()
     @ArrayNotEmpty()
-    @IsUUID(undefined, { each: true })
+    @IsUUID("4", { each: true })
     roleIds!: string[];
 }

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, type FC } from "react";
 import { authApi } from "../../../../services/api";
 import { getApiErrorMessage } from "../../../../services/errors";
 import type { Role, UserListItem } from "../types";
+import { useAuth } from "../../../../context/AuthContext";
 
 interface UserFormProps {
   reload?: () => void;
@@ -26,6 +27,8 @@ const UserForm: FC<UserFormProps> = ({ reload, user, open, onClose }) => {
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
+
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     authApi
@@ -116,6 +119,7 @@ const UserForm: FC<UserFormProps> = ({ reload, user, open, onClose }) => {
         <ProFormSwitch
           label="Is Active"
           name="isActive"
+          disabled={isEdit && user!.id === currentUser?.userid}
           initialValue={true}
         />
         <ProFormSelect

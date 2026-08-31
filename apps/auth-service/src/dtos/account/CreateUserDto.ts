@@ -10,7 +10,7 @@ export class CreateUserDto {
     password!: string;
 
     @IsBoolean()
-    isActive?: boolean;
+    isActive!: boolean;
 
     @IsArray()
     @ArrayNotEmpty()

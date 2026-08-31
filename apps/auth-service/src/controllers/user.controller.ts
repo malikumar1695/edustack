@@ -32,7 +32,7 @@ userRouter.post("/", validateBody(CreateUserDto), async (req, res) => {
 
 userRouter.put("/:id", validateBody(UpdateUserDto), async (req, res) => {
     const { roleIds, isActive } = req.body as UpdateUserDto;
-    const user = await userService.updateUser(req.params.id, roleIds, isActive!);
+    const user = await userService.updateUser(req.params.id, roleIds, isActive!, req.user!.sub);
     req.log.info({ updatedUserId: user.id, roleIds, by: req.user!.sub }, "user updated by admin");
     res.json(user);
 });

@@ -6,6 +6,7 @@ import { authApi } from "../../../services/api";
 import { getApiErrorMessage } from "../../../services/errors";
 import UserForm from "./components/UserForm";
 import type { UserListItem } from "./types";
+import { useAuth } from "../../../context/AuthContext";
 
 const Users: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);
@@ -13,6 +14,7 @@ const Users: React.FC = () => {
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null);
   const [pageSize, setPageSize] = useState(10);
 
+  const { currentUser } = useAuth();
   const reloadTable = () => actionRef.current?.reload();
 
   const initiateDelete = async (record: UserListItem): Promise<void> => {
@@ -54,24 +56,32 @@ const Users: React.FC = () => {
     {
       title: "Actions",
       valueType: "option",
-      render: (_, record) => [
-        <Button key="edit" type="link" onClick={() => setEditingUser(record)}>
-          Edit
-        </Button>,
-        <Popconfirm
-          key="delete"
-          title="Delete user"
-          description={`Delete "${record.username}"? This cannot be undone.`}
-          okText="Delete"
-          okButtonProps={{ danger: true }}
-          cancelText="Cancel"
-          onConfirm={() => initiateDelete(record)}
-        >
-          <Button type="link" danger>
-            Delete
-          </Button>
-        </Popconfirm>,
-      ],
+      render: (_, record) => {
+        const isSelf = record.id === currentUser?.userid;
+
+        return [
+          <Button key="edit" type="link" onClick={() => setEditingUser(record)}>
+            Edit
+          </Button>,
+          ...(isSelf
+            ? []
+            : [
+              <Popconfirm
+                key="delete"
+                title="Delete user"
+                description={`Delete "${record.username}"? This cannot be undone.`}
+                okText="Delete"
+                okButtonProps={{ danger: true }}
+                cancelText="Cancel"
+                onConfirm={() => initiateDelete(record)}
+              >
+                <Button type="link" danger>
+                  Delete
+                </Button>
+              </Popconfirm>,
+            ]),
+        ];
+      },
     },
   ];
 

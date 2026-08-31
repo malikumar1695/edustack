@@ -32,6 +32,7 @@ export const login = async (username: string, password: string): Promise<{ acces
 
     const valid = await verifyPassword(user.passwordHash, password);
     if (!valid) {
+        await userRepo.registerFailedLoginAttempt(user.id, user.failedLoginAttempts);
         throw new InvalidCredentialsError();
     }
 
@@ -54,9 +55,11 @@ export const refresh = async (refreshToken: string): Promise<{ accessToken: stri
         throw new RefreshTokenReuseDetectedError();
     }
 
+
     const newRefreshToken = await tokenRepo.rotateRefreshToken(stored.id, stored.userId);
     const user = await userRepo.findUserById(stored.userId);
     if (!user) throw new InvalidCredentialsError();
+    if (!user.isActive) throw new AccountDisabledError();
 
     const accessToken = signAccessToken({ sub: user.id, username: user.username, roles: user.roles.map(r => r.role.name) });
 

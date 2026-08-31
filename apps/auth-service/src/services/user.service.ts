@@ -5,7 +5,7 @@ import * as tokenRepo from "../repositories/refresh-token.repository";
 import { hashPassword } from "../utils/password";
 import { UsernameTakenError } from "./auth.service";
 
-export const createUser = async (username: string, password: string, roles: string[],   isActive: boolean): Promise<{ id: string; username: string; roles: string[] }> => {
+export const createUser = async (username: string, password: string, roles: string[], isActive: boolean): Promise<{ id: string; username: string; roles: string[] }> => {
     const passwordHash = await hashPassword(password);
 
     try {
@@ -48,9 +48,14 @@ export const listRoles = async () => {
 
 };
 
-export const updateUser = async (id: string, roleIds: string[], isActive: boolean) => {
+export const updateUser = async (id: string, roleIds: string[], isActive: boolean, actorId: string) => {
+    if (!isActive && id === actorId) {
+        throw new ForbiddenError("You cannot disable your own account.");
+    }
+
     const user = await userRepo.updateUser(id, roleIds, isActive);
-    return { id: user.id, username: user.username, roles: user.roles.map((r) => r.role.name) };
+    await tokenRepo.revokeAllForUser(id);
+    return { id: user.id, username: user.username, roles: user.roles.map((r) => r.role.name), isActive: user.isActive };
 };
 
 

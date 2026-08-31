@@ -42,3 +42,10 @@ userRouter.delete("/:id", async (req, res) => {
     req.log.info({ deletedUserId: req.params.id, by: req.user!.sub }, "user deleted by admin");
     res.status(204).send();
 });
+
+
+userRouter.post("/:id/unlock", async (req, res) => {
+    const user = await userService.unlockUser(req.params.id);
+    req.log.info({ unlockedUserId: user.id, by: req.user!.sub }, "user unlocked by admin");
+    res.json(user);
+});

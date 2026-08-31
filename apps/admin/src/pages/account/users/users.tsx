@@ -27,6 +27,18 @@ const Users: React.FC = () => {
     }
   };
 
+
+  const unlockUser = async (record: UserListItem) => {
+    try {
+      await authApi.post(`/users/${record.id}/unlock`);
+      messageApi.success(`${record.username} unlocked`);
+      reloadTable();
+    } catch (error) {
+      messageApi.error(getApiErrorMessage(error));
+    }
+  };
+
+
   const columns: ProColumns<UserListItem>[] = [
     {
       title: "User Name",
@@ -54,12 +66,25 @@ const Users: React.FC = () => {
         record.isActive ? <Tag color="green">Active</Tag> : <Tag color="red">Inactive</Tag>,
     },
     {
+      title: "Locked",
+      dataIndex: "locked",
+      render: (_, record) =>
+        record.locked ? <Tag color="orange">Locked</Tag> : <Tag>—</Tag>,
+    },
+    {
       title: "Actions",
       valueType: "option",
       render: (_, record) => {
         const isSelf = record.id === currentUser?.userid;
 
         return [
+          ...(record.locked
+            ? [
+              <Button key="unlock" type="link" onClick={() => unlockUser(record)}>
+                Unlock
+              </Button>,
+            ]
+            : []),
           <Button key="edit" type="link" onClick={() => setEditingUser(record)}>
             Edit
           </Button>,

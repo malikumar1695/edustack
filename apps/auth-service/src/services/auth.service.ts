@@ -26,6 +26,11 @@ export const login = async (username: string, password: string): Promise<{ acces
         throw new AccountLockedError();
     }
 
+    if (user.lockedUntil) {
+        await userRepo.resetFailedLoginAttempts(user.id);
+        user.failedLoginAttempts = 0;
+    }
+
     if (!user.isActive)
         throw new AccountDisabledError();
 

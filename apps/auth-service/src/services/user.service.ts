@@ -64,3 +64,8 @@ export const deleteUser = async (id: string, actorId: string) => {
     await userRepo.deleteUser(id);
     await tokenRepo.revokeAllForUser(id);
 };
+
+export const unlockUser = async (id: string) => {
+    const user = await userRepo.resetFailedLoginAttempts(id);
+    return { id: user.id, username: user.username, locked: false };
+};

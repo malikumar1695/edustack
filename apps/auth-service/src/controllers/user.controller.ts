@@ -10,7 +10,7 @@ export const userRouter = Router();
 
 userRouter.use(authenticate, requireRole("admin"));
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
 
 userRouter.get("/", async (req, res) => {
@@ -24,15 +24,21 @@ userRouter.get("/", async (req, res) => {
 });
 
 userRouter.post("/", validateBody(CreateUserDto), async (req, res) => {
-    const { username, password, roleIds } = req.body as CreateUserDto;
-    const user = await userService.createUser(username, password, roleIds);
+    const { username, password, roleIds, isActive } = req.body as CreateUserDto;
+    const user = await userService.createUser(username, password, roleIds, isActive!);
     req.log.info({ createdUserId: user.id, roleIds, by: req.user!.sub }, "user created by admin");
     res.status(201).json(user);
 });
 
 userRouter.put("/:id", validateBody(UpdateUserDto), async (req, res) => {
-    const { roleIds } = req.body as UpdateUserDto;
-    const user = await userService.updateUser(req.params.id, roleIds);
+    const { roleIds, isActive } = req.body as UpdateUserDto;
+    const user = await userService.updateUser(req.params.id, roleIds, isActive!);
     req.log.info({ updatedUserId: user.id, roleIds, by: req.user!.sub }, "user updated by admin");
     res.json(user);
+});
+
+userRouter.delete("/:id", async (req, res) => {
+    await userService.deleteUser(req.params.id, req.user!.sub);
+    req.log.info({ deletedUserId: req.params.id, by: req.user!.sub }, "user deleted by admin");
+    res.status(204).send();
 });

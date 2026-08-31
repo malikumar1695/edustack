@@ -1,6 +1,10 @@
-import { ArrayNotEmpty, IsArray, IsUUID } from "class-validator";
+import { ArrayNotEmpty, IsArray, IsBoolean, IsOptional, IsUUID } from "class-validator";
 
 export class UpdateUserDto {
+
+    @IsBoolean()
+    isActive?: boolean;
+
     @IsArray()
     @ArrayNotEmpty()
     @IsUUID(undefined, { each: true })

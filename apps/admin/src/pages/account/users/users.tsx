@@ -1,6 +1,6 @@
 import type { ActionType, ProColumns } from "@ant-design/pro-components";
 import { PageContainer, ProTable } from "@ant-design/pro-components";
-import { Button, message, Tag } from "antd";
+import { Button, message, Popconfirm, Tag } from "antd";
 import React, { useRef, useState } from "react";
 import { authApi } from "../../../services/api";
 import { getApiErrorMessage } from "../../../services/errors";
@@ -11,8 +11,19 @@ const Users: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null);
+  const [pageSize, setPageSize] = useState(10);
 
   const reloadTable = () => actionRef.current?.reload();
+
+  const initiateDelete = async (record: UserListItem): Promise<void> => {
+    try {
+      await authApi.delete(`/users/${record.id}`);
+      messageApi.success(`User ${record.username} deleted successfully`);
+      reloadTable();
+    } catch (error) {
+      messageApi.error(getApiErrorMessage(error));
+    }
+  };
 
   const columns: ProColumns<UserListItem>[] = [
     {
@@ -35,10 +46,10 @@ const Users: React.FC = () => {
       valueType: "dateTime",
     },
     {
-      title: "Status",
-      dataIndex: "locked",
+      title: "Is Active",
+      dataIndex: "isActive",
       render: (_, record) =>
-        record.locked ? <Tag color="red">Locked</Tag> : <Tag color="green">Active</Tag>,
+        record.isActive ? <Tag color="green">Active</Tag> : <Tag color="red">Inactive</Tag>,
     },
     {
       title: "Actions",
@@ -47,6 +58,19 @@ const Users: React.FC = () => {
         <Button key="edit" type="link" onClick={() => setEditingUser(record)}>
           Edit
         </Button>,
+        <Popconfirm
+          key="delete"
+          title="Delete user"
+          description={`Delete "${record.username}"? This cannot be undone.`}
+          okText="Delete"
+          okButtonProps={{ danger: true }}
+          cancelText="Cancel"
+          onConfirm={() => initiateDelete(record)}
+        >
+          <Button type="link" danger>
+            Delete
+          </Button>
+        </Popconfirm>,
       ],
     },
   ];
@@ -61,6 +85,12 @@ const Users: React.FC = () => {
         // No search form yet: auth-service has no filtering, so rendering
         // filter inputs would be a control that silently does nothing.
         search={false}
+        pagination={{
+          pageSize,
+          showSizeChanger: true,
+          pageSizeOptions: ["10", "20", "50"],
+          onShowSizeChange: (_, size) => setPageSize(size),
+        }}
         toolBarRender={() => [<UserForm key="create" reload={reloadTable} />]}
         request={async (params) => {
           try {
@@ -90,3 +120,4 @@ const Users: React.FC = () => {
 };
 
 export default Users;
+

@@ -4,7 +4,7 @@ import * as userRepo from "../repositories/user.repository";
 import { hashPassword, verifyPassword } from "../utils/password";
 import * as tokenRepo from "../repositories/refresh-token.repository";
 import { Prisma } from "../../prisma/generated";
-import { AppError, RefreshTokenReuseDetectedError } from "../errors/AppError";
+import { AccountDisabledError, AppError, RefreshTokenReuseDetectedError } from "../errors/AppError";
 
 export class InvalidCredentialsError extends AppError {
     constructor() { super("Invalid username or password", 401, "INVALID_CREDENTIALS"); }
@@ -25,6 +25,10 @@ export const login = async (username: string, password: string): Promise<{ acces
     if (user.lockedUntil && user.lockedUntil > new Date()) {
         throw new AccountLockedError();
     }
+
+    if (!user.isActive)
+        throw new AccountDisabledError();
+
 
     const valid = await verifyPassword(user.passwordHash, password);
     if (!valid) {

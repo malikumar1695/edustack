@@ -7,6 +7,7 @@ export type Role = {
 export type UserListItem = {
   id: string;
   username: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
   locked: boolean;

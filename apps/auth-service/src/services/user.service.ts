@@ -1,14 +1,15 @@
 import { Prisma } from "../../prisma/generated";
-import { InvalidRoleError } from "../errors/AppError";
+import { ForbiddenError, InvalidRoleError } from "../errors/AppError";
 import * as userRepo from "../repositories/user.repository";
+import * as tokenRepo from "../repositories/refresh-token.repository";
 import { hashPassword } from "../utils/password";
 import { UsernameTakenError } from "./auth.service";
 
-export const createUser = async (username: string, password: string, roles: string[]): Promise<{ id: string; username: string; roles: string[] }> => {
+export const createUser = async (username: string, password: string, roles: string[],   isActive: boolean): Promise<{ id: string; username: string; roles: string[] }> => {
     const passwordHash = await hashPassword(password);
 
     try {
-        const user = await userRepo.createUserWithRole(username, passwordHash, roles);
+        const user = await userRepo.createUserWithRole(username, passwordHash, roles, isActive);
         return {
             id: user.id,
             username: user.username,
@@ -32,6 +33,7 @@ export const listUsers = async (page: number, pageSize: number) => {
         data: data.map((u) => ({
             id: u.id,
             username: u.username,
+            isActive: u.isActive,
             createdAt: u.createdAt,
             updatedAt: u.updatedAt,
             locked: Boolean(u.lockedUntil && u.lockedUntil > new Date()),
@@ -46,7 +48,14 @@ export const listRoles = async () => {
 
 };
 
-export const updateUser = async (id: string, roleIds: string[]) => {
-    const user = await userRepo.updateUserRoles(id, roleIds);
+export const updateUser = async (id: string, roleIds: string[], isActive: boolean) => {
+    const user = await userRepo.updateUser(id, roleIds, isActive);
     return { id: user.id, username: user.username, roles: user.roles.map((r) => r.role.name) };
+};
+
+
+export const deleteUser = async (id: string, actorId: string) => {
+    if (id === actorId) throw new ForbiddenError("You cannot delete your own account.");
+    await userRepo.deleteUser(id);
+    await tokenRepo.revokeAllForUser(id);
 };

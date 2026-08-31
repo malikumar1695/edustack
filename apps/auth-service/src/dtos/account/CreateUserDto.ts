@@ -1,4 +1,4 @@
-import { ArrayNotEmpty, IsArray, IsIn, IsString, IsUUID, Length } from "class-validator";
+import { ArrayNotEmpty, IsArray, IsBoolean, IsOptional, IsString, IsUUID, Length } from "class-validator";
 
 export class CreateUserDto {
     @IsString()
@@ -8,6 +8,9 @@ export class CreateUserDto {
     @IsString()
     @Length(8, 128)
     password!: string;
+
+    @IsBoolean()
+    isActive?: boolean;
 
     @IsArray()
     @ArrayNotEmpty()

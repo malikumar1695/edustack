@@ -1,5 +1,5 @@
 import { PlusOutlined } from "@ant-design/icons";
-import { ModalForm, ProFormSelect, ProFormText } from "@ant-design/pro-components";
+import { ModalForm, ProFormSelect, ProFormSwitch, ProFormText } from "@ant-design/pro-components";
 import { Button, message } from "antd";
 import { useEffect, useMemo, useState, type FC } from "react";
 import { authApi } from "../../../../services/api";
@@ -14,6 +14,7 @@ interface UserFormProps {
 }
 
 type UserFormState = {
+  isActive: boolean;
   username: string;
   password: string;
   roleIds: string[];
@@ -40,7 +41,7 @@ const UserForm: FC<UserFormProps> = ({ reload, user, open, onClose }) => {
 
   const submit = async (values: UserFormState) => {
     if (isEdit) {
-      await authApi.put(`/users/${user!.id}`, { roleIds: values.roleIds });
+      await authApi.put(`/users/${user!.id}`, { isActive: values.isActive, roleIds: values.roleIds });
     } else {
       await authApi.post("/users", values);
     }
@@ -65,9 +66,10 @@ const UserForm: FC<UserFormProps> = ({ reload, user, open, onClose }) => {
         initialValues={
           isEdit
             ? {
-                username: user!.username,
-                roleIds: user!.roles.map((role) => role.id),
-              }
+              username: user!.username,
+              roleIds: user!.roles.map((role) => role.id),
+              isActive: user!.isActive,
+            }
             : undefined
         }
         width="400px"
@@ -111,7 +113,11 @@ const UserForm: FC<UserFormProps> = ({ reload, user, open, onClose }) => {
             ]}
           />
         )}
-
+        <ProFormSwitch
+          label="Is Active"
+          name="isActive"
+          initialValue={true}
+        />
         <ProFormSelect
           name="roleIds"
           mode="multiple"

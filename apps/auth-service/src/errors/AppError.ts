@@ -35,3 +35,7 @@ export class ForbiddenError extends AppError {
 export class InvalidRoleError extends AppError {
     constructor() { super("One or more roles do not exist", 400, "INVALID_ROLE"); }
 }
+
+export class AccountDisabledError extends AppError {
+    constructor() { super("Account is disabled. Please contact an administrator.", 403, "ACCOUNT_DISABLED"); }
+}

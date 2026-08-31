@@ -6,8 +6,8 @@ const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
 export const findUserByUsername = async (username: string) => {
-    return await prisma.user.findUnique({
-        where: { username },
+    return await prisma.user.findFirst({
+        where: { username, isDeleted: false },
         include: {
             roles: {
                 include: {
@@ -19,8 +19,8 @@ export const findUserByUsername = async (username: string) => {
 }
 
 export function findUserById(id: string) {
-    return prisma.user.findUnique({
-        where: { id }, include: {
+    return prisma.user.findFirst({
+        where: { id, isDeleted: false }, include: {
             roles: {
                 include: {
                     role: true
@@ -67,7 +67,7 @@ export const createUser = async (username: string, passwordHash: string) => {
     });
 }
 
-export const createUserWithRole = async (username: string, passwordHash: string, roles: string[]) => {
+export const createUserWithRole = async (username: string, passwordHash: string, roles: string[], isActive: boolean,) => {
 
     if (roles.length === 0) throw new Error("At least one role is required");
 
@@ -86,6 +86,7 @@ export const createUserWithRole = async (username: string, passwordHash: string,
 
     return await prisma.user.create({
         data: {
+            isActive,
             username,
             passwordHash,
             roles: {
@@ -103,9 +104,11 @@ export const createUserWithRole = async (username: string, passwordHash: string,
 export const listUsers = async (skip: number, take: number) => {
     const [data, total] = await prisma.$transaction([
         prisma.user.findMany({
+            where: { isDeleted: false },
             select: {
                 id: true,
                 username: true,
+                isActive: true,
                 createdAt: true,
                 updatedAt: true,
                 lockedUntil: true,
@@ -115,7 +118,7 @@ export const listUsers = async (skip: number, take: number) => {
             skip,
             take
         }),
-        prisma.user.count()
+        prisma.user.count({ where: { isDeleted: false } })
     ]);
 
     return { data, total };
@@ -128,15 +131,25 @@ export const listRoles = async () => {
     });
 };
 
-export const updateUserRoles = async (userId: string, roleIds: string[]) => {
+export const updateUser = async (userId: string, roleIds: string[], isActive: boolean) => {
     return await prisma.user.update({
         where: { id: userId },
         data: {
+            isActive,
             roles: {
                 deleteMany: {},
                 create: roleIds.map((roleId) => ({ roleId })),
             },
         },
         include: { roles: { include: { role: true } } },
+    });
+};
+
+export const deleteUser = async (userId: string) => {
+    return await prisma.user.update({
+        where: { id: userId },
+        data: {
+            isDeleted: true,
+        },
     });
 };

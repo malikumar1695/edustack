@@ -47,7 +47,7 @@ type AccessTokenClaims = {
   exp: number;
 }
 
-const ACCESS_KEY = "edustack-admin-access";
+export const ACCESS_KEY = "edustack-admin-access";
 
 /**
  * Ported from ant-design-pro-master's mock/user.ts, which kept a

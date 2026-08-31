@@ -1,5 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { logger } from "../lib/logger";
+import { ACCESS_KEY } from "../context/AuthContext";
 
 /**
  * Shared key so the auth flow and every HTTP client agree on where the
@@ -8,7 +9,6 @@ import { logger } from "../lib/logger";
  * wires a real JWT from auth-service, one write to this key is all any
  * client needs to pick it up.
  */
-export const TOKEN_STORAGE_KEY = "ilm_token";
 const LOGIN_PATH = "/user/login";
 
 /**
@@ -28,7 +28,7 @@ export function createHttpClient(baseURL: string) {
   });
 
   client.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const token = localStorage.getItem(ACCESS_KEY);
     if (token) {
       config.headers.set("Authorization", `Bearer ${token}`);
     }
@@ -42,15 +42,16 @@ export function createHttpClient(baseURL: string) {
       logger.error("api request failed", {
         status: error.response?.status,
         url: error.config?.url,
-        requestId: error.response?.headers?.["x-request-id "]
+        requestId: error.response?.headers?.["x-request-id"]
       });
-      
+
       if (error.response?.status === 401) {
-        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(ACCESS_KEY);
         if (window.location.pathname !== LOGIN_PATH) {
           window.location.href = LOGIN_PATH;
         }
       }
+
       return Promise.reject(error);
     },
   );

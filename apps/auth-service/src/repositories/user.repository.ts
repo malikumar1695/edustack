@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma";
+import { Role } from "../types/Role";
 
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -66,21 +67,33 @@ export const createUser = async (username: string, passwordHash: string) => {
     });
 }
 
-export const createUserWithRole = async (username: string, passwordHash: string, roleName: string) => {
+export const createUserWithRole = async (username: string, passwordHash: string, roles: string[]) => {
 
-    const role = await prisma.role.findUnique({ where: { name: roleName } });
-    if (!role) throw new Error(`Role "${roleName}" not found`);
+    if (roles.length === 0) throw new Error("At least one role is required");
+
+    const ids = roles;
+
+    const found = await prisma.role.findMany({
+        where: { id: { in: ids } },
+        select: { id: true },
+    });
+
+    if (found.length !== ids.length) {
+        const foundIds = new Set(found.map((r) => r.id));
+        const missing = ids.filter((id) => !foundIds.has(id));
+        throw new Error(`Roles not found: ${missing.join(", ")}`);
+    }
 
     return await prisma.user.create({
         data: {
             username,
             passwordHash,
             roles: {
-                create: {
+                create: roles.map((roleId) => ({
                     role: {
-                        connect: { name: roleName }
+                        connect: { id: roleId }
                     }
-                }
+                }))
             }
         },
         include: { roles: { include: { role: true } } }
@@ -93,9 +106,30 @@ export const listUsers = async () => {
             id: true,
             username: true,
             createdAt: true,
+            updatedAt: true,
             lockedUntil: true,
             roles: { select: { role: { select: { name: true } } } }
         },
         orderBy: { createdAt: "desc" }
     });
 }
+
+export const listRoles = async () => {
+    return await prisma.role.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+    });
+};
+
+export const updateUserRoles = async (userId: string, roleIds: string[]) => {
+    return await prisma.user.update({
+        where: { id: userId },
+        data: {
+            roles: {
+                deleteMany: {},
+                create: roleIds.map((roleId) => ({ roleId })),
+            },
+        },
+        include: { roles: { include: { role: true } } },
+    });
+};

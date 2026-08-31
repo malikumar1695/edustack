@@ -31,3 +31,7 @@ export class UnauthorizedError extends AppError {
 export class ForbiddenError extends AppError {
     constructor(message = "Insufficient permissions") { super(message, 403, "FORBIDDEN"); }
 }
+
+export class InvalidRoleError extends AppError {
+    constructor() { super("One or more roles do not exist", 400, "INVALID_ROLE"); }
+}

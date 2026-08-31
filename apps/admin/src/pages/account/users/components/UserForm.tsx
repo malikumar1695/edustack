@@ -8,26 +8,40 @@ import {
 import { Button, message } from "antd";
 import { useEffect, useMemo, useState, type FC } from "react";
 import { authApi } from "../../../../services/api";
+import { getApiErrorMessage } from "../../../../services/errors";
+
+type UserListItem = {
+  id: string;
+  username: string;
+  createdAt: Date;
+  updatedAt: Date;
+  locked: boolean;
+  roles: { role: { id: string, name: string } }[];
+}
+
 
 interface UserFormProps {
-  reload?: ActionType["reload"];
+  reload?: () => void;
+  user?: UserListItem;      // present = edit mode
+  open?: boolean;
+  onClose?: () => void;
 }
 
 type Role = {
   id: string;
   name: string;
-  permissions: { id: string; name: string }[];
 };
 
 type UserFormState = {
   username: string;
   password: string;
-  roles: Role[];
+  roleIds: string[];
 }
 
 
 const UserForm: FC<UserFormProps> = (props) => {
-  const { reload } = props;
+  const { reload, user } = props;
+  const isEdit = Boolean(user);
 
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
@@ -45,47 +59,38 @@ const UserForm: FC<UserFormProps> = (props) => {
     return roles.map((role) => ({
       label: role.name,
       value: role.id,
-      permissions: role.permissions.map((p) => ({ id: p.id, name: p.name })),
     }));
   }, [roles]);
 
-  const permissionOptions = useMemo(() => {
-    const byId = new Map<string, string>();
-    for (const role of selectedRoles) {
-      for (const permission of role.permissions) {
-        byId.set(permission.id, permission.name);
-      }
+
+  const submit = async (values: UserFormState) => {
+    if (isEdit) {
+      await authApi.put(`/users/${user!.id}`, { roleIds: values.roleIds });
+    } else {
+      await authApi.post("/users", values);
     }
-    return Array.from(byId, ([value, label]) => ({ label, value }));
-
-  }, [selectedRoles]);
-
-
-  const addUser = async (user: UserFormState) => {
-
-  }
+  };
 
   return (
     <>
       {contextHolder}
       <ModalForm
-        title="Create User"
-        trigger={
-          <Button type="primary" icon={<PlusOutlined />}>
-            New
-          </Button>
-        }
+        title={isEdit ? "Edit User" : "Create User"}
+        open={isEdit ? props.open : undefined}
+        onOpenChange={(v) => { if (!v) props.onClose?.(); }}
+        trigger={isEdit ? undefined : <Button type="primary" icon={<PlusOutlined />}>New</Button>}
+        initialValues={isEdit ? { username: user!.username, roleIds: [] } : undefined}
         width="400px"
         modalProps={{ okButtonProps: { loading } }}
         onFinish={async (value) => {
           setLoading(true);
           try {
-            await addUser(value as UserFormState);
-            messageApi.success("Added successfully");
+            await submit(value as UserFormState);
+            messageApi.success(isEdit ? "Updated successfully" : "Added successfully");
             reload?.();
             return true;
-          } catch {
-            messageApi.error("Adding failed, please try again!");
+          } catch (error) {
+            messageApi.error(getApiErrorMessage(error));
             return false;
           } finally {
             setLoading(false);
@@ -93,6 +98,7 @@ const UserForm: FC<UserFormProps> = (props) => {
         }}
       >
         <ProFormText
+          placeholder="Enter username"
           rules={[
             {
               required: true,
@@ -103,6 +109,7 @@ const UserForm: FC<UserFormProps> = (props) => {
           name="username"
         />
         <ProFormText
+          placeholder="Enter password"
           rules={[
             {
               required: true,
@@ -113,10 +120,16 @@ const UserForm: FC<UserFormProps> = (props) => {
           name="password"
         />
         <ProFormSelect
-          name="roles"
+          name="roleIds"
           mode="multiple"
           width="md"
           label="Roles"
+          rules={[
+            {
+              required: true,
+              message: "At least one role is required",
+            },
+          ]}
           fieldProps={{
             onChange: (value: string[], option) => {
               const selectedRoles = roles.filter((role) => value.includes(role.id));
@@ -125,13 +138,7 @@ const UserForm: FC<UserFormProps> = (props) => {
           }}
           options={roleOptions}
         />
-        <ProFormSelect
-          name="permissions"
-          mode="multiple"
-          width="md"
-          label="Permissions"
-          options={permissionOptions}
-        />
+
       </ModalForm>
     </>
   );

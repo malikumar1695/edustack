@@ -1,5 +1,5 @@
+import { ACCESS_KEY } from "../../../context/AuthContext";
 import { authApi } from "../../../services/api";
-import { TOKEN_STORAGE_KEY } from "../../../services/httpClient";
 
 /**
  * Ported from ant-design-pro-master/src/pages/user/register/_mock.ts
@@ -13,6 +13,6 @@ export type RegisterParams = {
 
 export async function register(payload: RegisterParams) {
   const { data } = await authApi.post<{ accessToken: string }>("/auth/register", payload);
-  localStorage.setItem(TOKEN_STORAGE_KEY, data.accessToken);
+  localStorage.setItem(ACCESS_KEY, data.accessToken);
   return { status: "ok" as const };
 }

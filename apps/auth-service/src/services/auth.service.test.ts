@@ -3,7 +3,7 @@ import * as tokenRepo from "../repositories/refresh-token.repository";
 import * as userRepo from "../repositories/user.repository";
 import { hashPassword } from "../utils/password";
 import * as authService from "./auth.service";
-import { RefreshTokenReuseDetectedError } from "../errors/AppError";
+import { AccountDisabledError, RefreshTokenReuseDetectedError } from "../errors/AppError";
 
 
 vi.mock("../repositories/user.repository");
@@ -39,6 +39,7 @@ describe("auth.service login", () => {
             username: "umer",
             passwordHash: await hashPassword("correct"),
             lockedUntil: null,
+            isActive: true,
             roles: [{ role: { name: "user" } }]
         } as any);
         await expect(authService.login("umer", "wrongpassword")).rejects.toThrowError(authService.InvalidCredentialsError);
@@ -50,6 +51,7 @@ describe("auth.service login", () => {
             username: "umer",
             passwordHash: await hashPassword("correct"),
             lockedUntil: null,
+            isActive: true,
             roles: [{ role: { name: "user" } }],
         } as any);
 
@@ -96,4 +98,42 @@ describe("auth.service refresh", () => {
         await expect(authService.refresh("stolen-token")).rejects.toThrow(RefreshTokenReuseDetectedError);
         expect(tokenRepo.revokeAllForUser).toHaveBeenCalledWith("u1");
     });
+});
+
+
+it("throws AccountDisabledError when the account is disabled", async () => {
+    vi.mocked(userRepo.findUserByUsername).mockResolvedValue({
+        id: "u1",
+        username: "umer",
+        passwordHash: await hashPassword("correct"),
+        lockedUntil: null, isActive: false, failedLoginAttempts: 0,
+        roles: [{ role: { name: "user" } }],
+    } as any);
+
+    await expect(authService.login("umer", "correct")).rejects.toThrowError(AccountDisabledError);
+});
+
+it("counts a failed attempt when the password is wrong", async () => {
+    vi.mocked(userRepo.findUserByUsername).mockResolvedValue({
+        id: "u1", username: "umer", passwordHash: await hashPassword("correct"),
+        lockedUntil: null, isActive: true, failedLoginAttempts: 2,
+        roles: [{ role: { name: "user" } }],
+    } as any);
+
+    await expect(authService.login("umer", "wrong")).rejects.toThrowError(authService.InvalidCredentialsError);
+    expect(userRepo.registerFailedLoginAttempt).toHaveBeenCalledWith("u1", 2);
+});
+
+it("clears the counter when a previous lock has expired", async () => {
+    vi.mocked(userRepo.findUserByUsername).mockResolvedValue({
+        id: "u1", username: "umer", passwordHash: await hashPassword("correct"),
+        lockedUntil: new Date(Date.now() - 60_000),   // expired an hour of failures ago
+        isActive: true, failedLoginAttempts: 5,
+        roles: [{ role: { name: "user" } }],
+    } as any);
+    vi.mocked(tokenRepo.issueRefreshToken).mockResolvedValue("refresh");
+
+    await authService.login("umer", "correct");
+
+    expect(userRepo.resetFailedLoginAttempts).toHaveBeenCalledWith("u1");
 });

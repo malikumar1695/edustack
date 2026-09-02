@@ -17,11 +17,10 @@ export const createUser = async (username: string, password: string, roles: stri
         };
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            if (error.code === "P2002") {
-                throw new UsernameTakenError();
-            }
+            if (error.code === "P2002") throw new UsernameTakenError();
+
             if (error.code === "P2003" || error.code === "P2025") throw new InvalidRoleError();
-            throw error;
+          
         }
         throw error;
     };

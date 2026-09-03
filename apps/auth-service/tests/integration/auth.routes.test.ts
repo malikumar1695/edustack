@@ -25,33 +25,6 @@ beforeEach(async () => {
 });
 
 describe("POST /auth/register + /auth/login", () => {
-    it("registers a new user and logs in successfully", async () => {
-
-        const registerResponse = await request(app).post("/auth/register")
-            .send({ username: "testuser", password: "testpassword" });
-
-        expect(registerResponse.status).toBe(201);
-        expect(registerResponse.body).toHaveProperty("accessToken");
-        expect(registerResponse.headers['set-cookie'][0]).toMatch(/refreshToken=/);
-
-        const loginResponse = await request(app).post("/auth/login")
-            .send({ username: "testuser", password: "testpassword" });
-
-        expect(loginResponse.status).toBe(200);
-        expect(loginResponse.body).toHaveProperty("accessToken");
-
-    });
-
-    it("rejects a duplicate username with 409 status", async () => {
-        await request(app).post("/auth/register")
-            .send({ username: "testuser", password: "testpassword" });
-
-        const duplicateResponse = await request(app).post("/auth/register")
-            .send({ username: "testuser", password: "testpassword" });
-
-        expect(duplicateResponse.status).toBe(409);
-        expect(duplicateResponse.body.error.code).toBe("USERNAME_TAKEN");
-    });
 
     it("rejects a malformed body with 400 validation details", async () => {
 

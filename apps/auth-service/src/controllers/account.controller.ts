@@ -1,12 +1,10 @@
+import { validateBody } from "@ilm/http-kit";
 import "dotenv/config";
 import { Router } from "express";
 import { LoginDto } from "../dtos/account/LoginDto";
-import { loginRateLimiter, registerRateLimiter } from "../middlewares/rate-limit.middleware";
-import { validateBody } from "../middlewares/validate.middleware";
-import * as authService from "../services/auth.service";
-import { UsernameTakenError } from "../services/auth.service";
 import { RefreshTokenMissingError } from "../errors/AppError";
-import { RegisterDto } from "../dtos/account/RegisterDto";
+import { loginRateLimiter } from "../middlewares/rate-limit.middleware";
+import * as authService from "../services/auth.service";
 
 export const accountRouter = Router();
 

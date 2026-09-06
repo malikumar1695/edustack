@@ -4,8 +4,8 @@ import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { accountRouter } from "../../src/controllers/account.controller";
 import { prisma } from "../../src/lib/prisma";
-import { errorHandler } from "../../src/middlewares/error.middleware";
-import { requestLogger } from "../../src/middlewares/request-logger.middleware";
+import { errorHandler } from "@ilm/http-kit";
+import { requestLogger } from "@ilm/http-kit";
 
 const buildApp = () => {
     const app = express();

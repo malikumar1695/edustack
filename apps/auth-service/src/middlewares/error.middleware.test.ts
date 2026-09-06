@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import type { Request, Response } from "express";
 import { RefreshTokenMissingError, ValidationError } from "../errors/AppError";
-import { errorHandler } from "./error.middleware";
+import { errorHandler } from "@ilm/http-kit";
 
 
 const mockReqRes = (): { req: Request; res: Response } => {

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { authenticate } from "../middlewares/authenticate.middleware";
-import { requireRole } from "../middlewares/authorize.middleware";
+import { authenticate } from "@ilm/auth-kit";
+import { requireRole } from "@ilm/auth-kit";
 import * as userService from "../services/user.service";
 
 export const roleRouter = Router();

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Request, Response } from "express";
-import { requireRole } from "./authorize.middleware";
+import { requireRole } from "@ilm/auth-kit";
 import { ForbiddenError, UnauthorizedError } from "../errors/AppError";
 
 

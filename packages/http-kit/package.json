@@ -1,0 +1,25 @@
+{
+  "name": "@ilm/http-kit",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.19.43",
+    "express": "^4.19.2",
+    "typescript": "^5.5.3"
+  },
+  "peerDependencies": {
+    "express": "^4.19.2"
+  }
+}

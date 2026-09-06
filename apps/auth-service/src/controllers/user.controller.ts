@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { CreateUserDto } from "../dtos/account/CreateUserDto";
-import { authenticate } from "../middlewares/authenticate.middleware";
-import { requireRole } from "../middlewares/authorize.middleware";
-import { validateBody } from "../middlewares/validate.middleware";
+import { authenticate } from "@ilm/auth-kit";
+import { requireRole } from "@ilm/auth-kit";
+import { validateBody } from "@ilm/http-kit";
 import * as userService from "../services/user.service";
 import { UpdateUserDto } from "../dtos/account/UpdateUserDto";
 

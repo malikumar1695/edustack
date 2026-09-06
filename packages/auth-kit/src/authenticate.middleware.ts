@@ -1,7 +1,12 @@
-import { RequestHandler, Request, Response } from "express";
-import { verifyAccessToken } from "../config/jwt";
-import { UnauthorizedError } from "../errors/AppError";
+import { UnauthorizedError } from "@ilm/http-kit";
+import { Request, RequestHandler, Response } from "express";
+import { verifyAccessToken } from "./jwt";
 
+/**
+ * Verifies the bearer token locally against the public key — no database
+ * lookup and no call back to auth-service, so this keeps working even if
+ * auth-service is down.
+ */
 export const authenticate: RequestHandler = (req: Request, _res: Response, next) => {
     const header = req.headers.authorization;
     if (!header?.startsWith("Bearer ")) {

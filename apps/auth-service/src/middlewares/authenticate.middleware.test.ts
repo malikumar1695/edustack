@@ -2,7 +2,7 @@
 
 
 import { describe, expect, it, vi } from "vitest";
-import { authenticate } from "./authenticate.middleware";
+import { authenticate } from "@ilm/auth-kit";
 import { signAccessToken } from "../config/jwt";
 import type { Request, Response } from "express";
 import { UnauthorizedError } from "../errors/AppError";

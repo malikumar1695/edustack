@@ -1,0 +1,15 @@
+{
+  "name": "ilm",
+  "private": true,
+  "description": "Ilm — school management platform (auth, academic, notification services + admin SPA)",
+  "workspaces": [
+    "packages/*",
+    "apps/auth-service",
+    "apps/academic-service",
+    "apps/notification-service"
+  ],
+  "scripts": {
+    "build:packages": "npm run build --workspace @ilm/http-kit --workspace @ilm/auth-kit",
+    "test:auth": "npm test --workspace @ilm/auth-service"
+  }
+}

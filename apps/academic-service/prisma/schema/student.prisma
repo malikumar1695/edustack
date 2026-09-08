@@ -1,0 +1,26 @@
+model Student {
+    id            String   @id @default(uuid())
+    admissionNo   String   @unique
+    firstName     String
+    lastName      String
+    dateOfBirth   DateTime
+    gender        String
+    gaurdianName  String
+    gaurdianPhone String
+
+    // Reference to a User in auth-service. Deliberately NOT a relation:
+    // separate databases mean no foreign key and no cross-service join.
+    userId String? @unique
+
+    // Denormalised at write time from the JWT — avoids a synchronous call to
+    // auth-service just to display who created the record.
+    createdByUserId   String
+    createdByUsername String
+
+    isDeleted Boolean  @default(false)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+
+    @@index([isDeleted])
+}

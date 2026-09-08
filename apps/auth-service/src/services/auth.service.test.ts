@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Prisma } from "../../prisma/generated";
 import * as tokenRepo from "../repositories/refresh-token.repository";
 import * as userRepo from "../repositories/user.repository";
 import { hashPassword } from "../utils/password";
@@ -70,7 +71,6 @@ describe("auth.service register", () => {
     beforeEach(() => vi.resetAllMocks());
 
     it("throws UsernameTakenError when the username is already taken", async () => {
-        const { Prisma } = await import("../../prisma/generated");
         vi.mocked(userRepo.createUser).mockRejectedValue(
             new Prisma.PrismaClientKnownRequestError("Unique constraint failed",
                 {

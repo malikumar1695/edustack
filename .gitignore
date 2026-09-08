@@ -18,6 +18,13 @@ build/
 out/
 *.tsbuildinfo
 
+# ─── Generated code (regenerated from source; never hand-edited) ────────────
+# Prisma clients are emitted by `prisma generate` from prisma/schema.
+# Applies to every service, so services don't each need their own rule.
+**/prisma/generated/
+**/src/generated/
+.prisma/
+
 # ─── Environment (keep .env.example committed as documentation) ─────────────
 .env
 .env.local

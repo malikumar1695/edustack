@@ -25,7 +25,7 @@ const getPublicKey = (): string => {
 
     const inline = process.env.JWT_PUBLIC_KEY;
     if (inline) {
-        cachedPublicKey = inline.replace(/\n/g, "\n");
+        cachedPublicKey = inline.replace(/\\n/g, "\n");
         return cachedPublicKey;
     }
 

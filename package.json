@@ -1,7 +1,7 @@
 {
   "name": "ilm",
   "private": true,
-  "description": "Ilm — school management platform (auth, academic, notification services + admin SPA)",
+  "description": "Ilm \u2014 school management platform (auth, academic, notification services + admin SPA)",
   "workspaces": [
     "packages/*",
     "apps/auth-service",
@@ -11,5 +11,9 @@
   "scripts": {
     "build:packages": "npm run build --workspace @ilm/http-kit --workspace @ilm/auth-kit",
     "test:auth": "npm test --workspace @ilm/auth-service"
+  },
+  "overrides": {
+    "prisma": "^7.10.0",
+    "@prisma/client": "^7.10.0"
   }
 }

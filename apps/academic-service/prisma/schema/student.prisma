@@ -4,7 +4,7 @@ model Student {
     firstName     String
     lastName      String
     dateOfBirth   DateTime
-    gender        String
+    gender        Gender
     gaurdianName  String
     gaurdianPhone String
 

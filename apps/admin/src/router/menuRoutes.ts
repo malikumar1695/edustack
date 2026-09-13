@@ -103,6 +103,11 @@ export const menuRoutes: MenuRoute[] = [
     ],
   },
   {
+    path: "/students",
+    name: "Students",
+    icon: "team"
+  },
+  {
     path: "/chatbot",
     name: "Chatbot",
     icon: "robot",

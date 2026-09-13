@@ -5,8 +5,15 @@ model Student {
     lastName      String
     dateOfBirth   DateTime
     gender        Gender
-    gaurdianName  String
-    gaurdianPhone String
+    guardianName  String
+    guardianPhone String
+    /// ISO 3166-1 alpha-2 of the guardian phone's country, e.g. "QA".
+    /// Derived from guardianPhone on write — never taken from the client.
+    phoneCountry  String   @db.Char(2)
+
+    /// Where the student actually lives. Independent of the phone —
+    /// expat families commonly have a foreign guardian number.
+    countryOfResidence String @db.Char(2)
 
     // Reference to a User in auth-service. Deliberately NOT a relation:
     // separate databases mean no foreign key and no cross-service join.
@@ -20,7 +27,6 @@ model Student {
     isDeleted Boolean  @default(false)
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-
 
     @@index([isDeleted])
 }

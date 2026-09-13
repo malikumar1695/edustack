@@ -1,8 +1,10 @@
 import "dotenv/config";
+import "express-async-errors"; // async throws reach errorHandler
 import { authenticate } from "@ilm/auth-kit";
-import { errorHandler, requestLogger } from "@ilm/http-kit";
+import { errorHandler, logger, requestLogger } from "@ilm/http-kit";
 import cors from "cors";
 import express from "express";
+import { studentRouter } from "./controllers/student.controller";
 
 const app = express();
 const port = process.env.PORT ?? 4002;
@@ -23,8 +25,10 @@ app.get("/whoiam", authenticate, (req, res) => {
   res.json({ user: req.user });
 });
 
+app.use("/students", authenticate, studentRouter);
 app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`academic-service listening on http://localhost:${port}`);
+  logger.info({ port }, `academic-service listening`);
 });

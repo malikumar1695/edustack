@@ -5,8 +5,8 @@ import React, { useRef, useState } from "react";
 import { authApi } from "../../../services/api";
 import { getApiErrorMessage } from "../../../services/errors";
 import UserForm from "./components/UserForm";
-import type { UserListItem } from "./types";
 import { useAuth } from "../../../context/AuthContext";
+import type { UserListItem } from "../../../lib/types";
 
 const Users: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);

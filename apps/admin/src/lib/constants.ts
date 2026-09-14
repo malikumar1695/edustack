@@ -15,4 +15,6 @@ const COUNTRY_OPTIONS = getCountries().map(code => {
     };
 });
 
-export { GENDER_OPTIONS, COUNTRY_OPTIONS };
+const getCountry = (code: string) => REGION_NAMES.of(code);
+
+export { GENDER_OPTIONS, COUNTRY_OPTIONS, getCountry };

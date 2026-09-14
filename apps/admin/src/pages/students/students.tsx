@@ -1,5 +1,6 @@
 import type { ActionType, ProColumns } from "@ant-design/pro-components";
 import { PageContainer, ProTable } from "@ant-design/pro-components";
+import { getCountry } from "../../lib/constants";
 import { Button, message, Popconfirm, Tag } from "antd";
 import React, { useRef, useState } from "react";
 import type { StudentListItem } from "../../lib/types";
@@ -29,14 +30,26 @@ const Students: React.FC = () => {
 
     const columns: ProColumns<StudentListItem>[] = [
         {
+            title: "Admission#",
+            dataIndex: "admissionNo",
+        },
+        {
             title: "First Name",
             dataIndex: "firstName",
             render: (_, record) => `${record.firstName} ${record.lastName}`,
         },
         {
-            title: "Created",
-            dataIndex: "createdAt",
-            valueType: "dateTime",
+            title: "Guardian Name",
+            dataIndex: "guardianName",
+        },
+        {
+            title: "Guardian Phone",
+            dataIndex: "guardianPhone",
+        },
+        {
+            title: "Country of Residence",
+            dataIndex: "countryOfResidence",
+            render: (_, record) => <Tag>{getCountry(record.countryOfResidence)}</Tag>,
         },
         {
             title: "Updated",

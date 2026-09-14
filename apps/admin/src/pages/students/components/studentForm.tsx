@@ -1,7 +1,7 @@
 import { PlusOutlined } from "@ant-design/icons";
 import { ModalForm, ProFormDatePicker, ProFormSelect, ProFormText } from "@ant-design/pro-components";
 import { Button, Form, Input, message, Select, Space } from "antd";
-import parsePhoneNumberFromString, { getCountries, getCountryCallingCode } from "libphonenumber-js";
+import parsePhoneNumberFromString, { CountryCode, getCountries, getCountryCallingCode } from "libphonenumber-js";
 import { useState, type FC } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { COUNTRY_OPTIONS, GENDER_OPTIONS } from "../../../lib/constants";
@@ -40,7 +40,7 @@ const StudentForm: FC<StudentFormProps> = ({ reload, student, open, onClose }) =
     const submit = async (values: StudentFormState) => {
         const payload = {
             ...values,
-            guardianPhone: `+${AsYouType(values.phoneCountry)}${values.guardianPhone.replace(/[\s-]/g, "")}`,
+            guardianPhone: `+${getCountryCallingCode(values.phoneCountry as CountryCode)}${values.guardianPhone.replace(/[\s-]/g, "")}`,
         };
         if (isEdit) {
             await academicApi.put(`/students/${student!.id}`, payload);
@@ -91,12 +91,19 @@ const StudentForm: FC<StudentFormProps> = ({ reload, student, open, onClose }) =
                     }
                 }}
             >
+                {isEdit && (
+                    <ProFormText
+                    name="admissionNo"
+                    label="Admission#"
+                    width="md"
+                    disabled
+                />
+                )}
                 <ProFormText
                     name="firstName"
                     label="First Name"
                     placeholder="Enter first name"
                     width="md"
-                    disabled={isEdit}
                     rules={[
                         { required: true, message: "First name is required" },
                         { min: 3, max: 64, message: "First name must be between 3 and 64 characters" },
@@ -107,7 +114,6 @@ const StudentForm: FC<StudentFormProps> = ({ reload, student, open, onClose }) =
                     label="Last Name"
                     placeholder="Enter last name"
                     width="md"
-                    disabled={isEdit}
                     rules={[
                         { required: true, message: "Last name is required" },
                         { min: 3, max: 64, message: "Last name must be between 3 and 64 characters" },
@@ -134,7 +140,6 @@ const StudentForm: FC<StudentFormProps> = ({ reload, student, open, onClose }) =
                     label="Guardian Name"
                     placeholder="Enter guardian name"
                     width="md"
-                    disabled={isEdit}
                     rules={[
                         { required: true, message: "Guardian name is required" },
                         { min: 3, max: 64, message: "Guardian name must be between 3 and 64 characters" },

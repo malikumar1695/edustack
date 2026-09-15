@@ -124,6 +124,15 @@ export const listUsers = async (skip: number, take: number) => {
     return { data, total };
 }
 
+export const unlinkedUsers = async (roleName: string) => {
+    return await prisma.user.findMany({
+        where: {
+            isDeleted: false,
+            roles: { none: { role: { name: roleName } } },
+        },
+    });
+};
+
 export const listRoles = async () => {
     return await prisma.role.findMany({
         select: { id: true, name: true },

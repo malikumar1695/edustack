@@ -8,11 +8,13 @@ import { useAuth } from "../../context/AuthContext";
 import { academicApi } from "../../services/api";
 import { getApiErrorMessage } from "../../services/errors";
 import StudentForm from "./components/studentForm";
+import LinkStudentUserForm from "./components/LinkStudentUserForm";
 
 const Students: React.FC = () => {
     const actionRef = useRef<ActionType | null>(null);
     const [messageApi, contextHolder] = message.useMessage();
     const [editingStudent, setEditingStudent] = useState<StudentListItem | null>(null);
+    const [linkingStudentUser, setLinkingStudentUser] = useState<StudentListItem | null>(null);
     const [pageSize, setPageSize] = useState(10);
 
     const { currentUser } = useAuth();
@@ -62,6 +64,7 @@ const Students: React.FC = () => {
             render: (_, record) => {
                 const isSelf = record.id === currentUser?.userid;
 
+
                 return [
                     <Button key="edit" type="link" onClick={() => setEditingStudent(record)}>
                         Edit
@@ -83,6 +86,9 @@ const Students: React.FC = () => {
                                 </Button>
                             </Popconfirm>,
                         ]),
+                    <Button key="linkUser" type="link" onClick={() => setLinkingStudentUser(record)}>
+                        Link User
+                    </Button>,
                 ];
             },
         },
@@ -125,6 +131,15 @@ const Students: React.FC = () => {
                     student={editingStudent}
                     open
                     onClose={() => setEditingStudent(null)}
+                    reload={reloadTable}
+                />
+            )}
+            {linkingStudentUser && (
+                <LinkStudentUserForm
+                    key={linkingStudentUser.id}
+                    student={linkingStudentUser}
+                    open
+                    onClose={() => setLinkingStudentUser(null)}
                     reload={reloadTable}
                 />
             )}

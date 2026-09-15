@@ -30,6 +30,12 @@ userRouter.post("/", validateBody(CreateUserDto), async (req, res) => {
     res.status(201).json(user);
 });
 
+userRouter.get("/unlinkedUsers", async (req, res) => {
+    const roleName = String(req.query.roleName);
+    const users = await userService.unlinkedUsers(roleName);
+    res.json(users);
+});
+
 userRouter.put("/:id", validateBody(UpdateUserDto), async (req, res) => {
     const { roleIds, isActive } = req.body as UpdateUserDto;
     const user = await userService.updateUser(req.params.id, roleIds, isActive!, req.user!.sub);

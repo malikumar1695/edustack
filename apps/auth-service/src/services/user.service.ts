@@ -20,7 +20,7 @@ export const createUser = async (username: string, password: string, roles: stri
             if (error.code === "P2002") throw new UsernameTakenError();
 
             if (error.code === "P2003" || error.code === "P2025") throw new InvalidRoleError();
-          
+
         }
         throw error;
     };
@@ -44,7 +44,10 @@ export const listUsers = async (page: number, pageSize: number) => {
 
 export const listRoles = async () => {
     return await userRepo.listRoles();
+};
 
+export const unlinkedUsers = async (roleName: string) => {
+    return await userRepo.unlinkedUsers(roleName);
 };
 
 export const updateUser = async (id: string, roleIds: string[], isActive: boolean, actorId: string) => {

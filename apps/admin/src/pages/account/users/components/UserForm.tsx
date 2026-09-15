@@ -4,8 +4,9 @@ import { Button, message } from "antd";
 import { useEffect, useMemo, useState, type FC } from "react";
 import { authApi } from "../../../../services/api";
 import { getApiErrorMessage } from "../../../../services/errors";
-import type { Role, UserListItem } from "../types";
 import { useAuth } from "../../../../context/AuthContext";
+import type { Role, UserListItem } from "../../../../lib/types";
+import UserFormFields from "./UserFormFields";
 
 interface UserFormProps {
   reload?: () => void;
@@ -92,30 +93,7 @@ const UserForm: FC<UserFormProps> = ({ reload, user, open, onClose }) => {
           }
         }}
       >
-        <ProFormText
-          name="username"
-          label="Username"
-          placeholder="Enter username"
-          width="md"
-          disabled={isEdit}
-          rules={[
-            { required: true, message: "Username is required" },
-            { min: 3, max: 64, message: "Username must be between 3 and 64 characters" },
-          ]}
-        />
-
-        {!isEdit && (
-          <ProFormText.Password
-            name="password"
-            label="Password"
-            placeholder="Enter password"
-            width="md"
-            rules={[
-              { required: true, message: "Password is required" },
-              { min: 8, message: "Password must be at least 8 characters" },
-            ]}
-          />
-        )}
+        <UserFormFields isEdit={isEdit} />
         <ProFormSwitch
           label="Is Active"
           name="isActive"

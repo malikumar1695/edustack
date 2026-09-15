@@ -1,8 +1,9 @@
-import { Router } from "express";
-import * as studentService from "../services/student.service";
-import { authenticate, requireRole } from "@ilm/auth-kit";
+import { requireRole } from "@ilm/auth-kit";
 import { validateBody } from "@ilm/http-kit";
+import { Router } from "express";
 import { CreateStudentDto } from "../dtos/student/CreateStudentDto";
+import { UpdateStudentDto } from "../dtos/student/UpdateStudentDto";
+import * as studentService from "../services/student.service";
 
 export const studentRouter = Router();
 
@@ -25,9 +26,9 @@ studentRouter.post("/", requireRole("admin", "teacher"), validateBody(CreateStud
     res.status(201).json(student);
 });
 
-studentRouter.put("/:id", requireRole("admin", "teacher"), validateBody(CreateStudentDto), async (req, res) => {
+studentRouter.put("/:id", requireRole("admin", "teacher"), validateBody(UpdateStudentDto), async (req, res) => {
     const studentId = req.params.id;
-    const dto = req.body as CreateStudentDto;
+    const dto = req.body as UpdateStudentDto;
 
     const student = await studentService.updateStudent(studentId, dto, req.user!);
     req.log.info({ studentId: student.id, by: req.user!.sub }, "student updated");

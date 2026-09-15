@@ -1,0 +1,1 @@
+CREATE SEQUENCE IF NOT EXISTS admissionno_seq START 1;

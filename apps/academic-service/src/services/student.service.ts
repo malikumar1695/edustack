@@ -1,9 +1,9 @@
 import { parsePhoneNumberFromString } from "libphonenumber-js";
-import * as studentRepo from "../repositories/student.repository";
-import { CreateStudentDto } from "../dtos/student/CreateStudentDto";
 import { Prisma } from "../../prisma/generated";
-import { AdmissionNoTakenError, ValidationError, StudentNotFoundError, UnableToDetermineCountryError } from "../errors/AppError";
+import { CreateStudentDto } from "../dtos/student/CreateStudentDto";
 import { UpdateStudentDto } from "../dtos/student/UpdateStudentDto";
+import { AdmissionNoTakenError, StudentNotFoundError, UnableToDetermineCountryError } from "../errors/AppError";
+import * as studentRepo from "../repositories/student.repository";
 
 type Actor = { sub: string, username: string };
 
@@ -14,7 +14,7 @@ const phoneCountryOf = (phone: string): string => {
     return parsed.country;
 };
 
-const listStudents = async (page: number, pageSize: number) => 
+const listStudents = async (page: number, pageSize: number) =>
     await studentRepo.listStudents((page - 1) * pageSize, pageSize);
 
 const getStudentById = async (id: string) => await studentRepo.getStudentById(id);
@@ -48,18 +48,12 @@ const updateStudent = async (id: string, dto: UpdateStudentDto, actor: Actor) =>
 
     const phoneCountry = phoneCountryOf(dto.guardianPhone);
 
-    try {
-        return await studentRepo.updateStudent(id, {
-            ...dto,
-            dateOfBirth: new Date(dto.dateOfBirth),
-            phoneCountry,
-        });
-    } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-            throw new AdmissionNoTakenError();
-        }
-        throw error;
-    }
+
+    return await studentRepo.updateStudent(id, {
+        ...dto,
+        dateOfBirth: new Date(dto.dateOfBirth),
+        phoneCountry,
+    });
 };
 
 
@@ -71,9 +65,5 @@ const deleteStudent = async (id: string) => {
 };
 
 export {
-    listStudents,
-    getStudentById,
-    createStudent,
-    updateStudent,
-    deleteStudent,
+    createStudent, deleteStudent, getStudentById, listStudents, updateStudent
 };

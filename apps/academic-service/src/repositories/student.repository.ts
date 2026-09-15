@@ -1,4 +1,4 @@
-import { Gender } from "../../prisma/generated";
+import { Gender, Prisma } from "../../prisma/generated";
 import { prisma } from "../lib/prisma";
 
 
@@ -15,9 +15,11 @@ type StudentWriteData = {
 };
 
 const listStudents = async (skip: number, take: number) => {
-    const where = { isDeleted: false };
-    const [data, total] = await Promise.all([
-        prisma.student.findMany({ where, skip, take }),
+    const where: Prisma.StudentWhereInput = { isDeleted: false };
+    const orderBy: Prisma.StudentOrderByWithRelationInput = { createdAt: "desc" };
+
+    const [data, total] = await prisma.$transaction([
+        prisma.student.findMany({ where, skip, take, orderBy }),
         prisma.student.count({ where }),
     ]);
     return { data, total };
@@ -25,7 +27,7 @@ const listStudents = async (skip: number, take: number) => {
 
 const getStudentById = async (id: string) => {
     const student = await prisma.student.findUnique({
-        where: { id },
+        where: { id, isDeleted: false },
     });
     return student;
 };

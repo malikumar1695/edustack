@@ -4,7 +4,6 @@ import { getCountry } from "../../lib/constants";
 import { Button, message, Popconfirm, Tag } from "antd";
 import React, { useRef, useState } from "react";
 import type { StudentListItem } from "../../lib/types";
-import { useAuth } from "../../context/AuthContext";
 import { academicApi } from "../../services/api";
 import { getApiErrorMessage } from "../../services/errors";
 import StudentForm from "./components/studentForm";
@@ -17,7 +16,6 @@ const Students: React.FC = () => {
     const [linkingStudentUser, setLinkingStudentUser] = useState<StudentListItem | null>(null);
     const [pageSize, setPageSize] = useState(10);
 
-    const { currentUser } = useAuth();
     const reloadTable = () => actionRef.current?.reload();
 
     const initiateDelete = async (record: StudentListItem): Promise<void> => {
@@ -32,7 +30,7 @@ const Students: React.FC = () => {
 
     const initiateUnlinkUser = async (record: StudentListItem): Promise<void> => {
         try {
-            await academicApi.delete(`/students/${record.id}/unlinkUser`);
+            await academicApi.delete(`/students/${record.id}/user`);
             messageApi.success(`User unlinked from student ${record.firstName} ${record.lastName} successfully`);
             reloadTable();
         } catch (error) {
@@ -71,7 +69,7 @@ const Students: React.FC = () => {
         },
         {
             title: "Login UserName",
-            dataIndex: "userUsername",
+            dataIndex: "loginUsername",
             render: (_, r) => r.loginUsername
                 ? <Tag color="blue">{r.loginUsername}</Tag>
                 : <Tag>Not linked</Tag>,
@@ -80,31 +78,23 @@ const Students: React.FC = () => {
             title: "Actions",
             valueType: "option",
             render: (_, record) => {
-                const isSelf = record.id === currentUser?.userid;
-
-
-
                 return [
                     <Button key="edit" type="link" onClick={() => setEditingStudent(record)}>
                         Edit
                     </Button>,
-                    ...(isSelf
-                        ? []
-                        : [
-                            <Popconfirm
-                                key="delete"
-                                title="Delete student"
-                                description={`Delete "${record.firstName} ${record.lastName}"? This cannot be undone.`}
-                                okText="Delete"
-                                okButtonProps={{ danger: true }}
-                                cancelText="Cancel"
-                                onConfirm={() => initiateDelete(record)}
-                            >
-                                <Button type="link" danger>
-                                    Delete
-                                </Button>
-                            </Popconfirm>,
-                        ]),
+                    <Popconfirm
+                        key="delete"
+                        title="Delete student"
+                        description={`Delete "${record.firstName} ${record.lastName}"? This cannot be undone.`}
+                        okText="Delete"
+                        okButtonProps={{ danger: true }}
+                        cancelText="Cancel"
+                        onConfirm={() => initiateDelete(record)}
+                    >
+                        <Button type="link" danger>
+                            Delete
+                        </Button>
+                    </Popconfirm>,
                     <Button key="linkUser" type="link" onClick={() => setLinkingStudentUser(record)}>
                         {record.userId ? "Change User" : "Link User"}
                     </Button>,

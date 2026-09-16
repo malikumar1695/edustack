@@ -1,11 +1,10 @@
 import { Router } from "express";
 import { CreateUserDto } from "../dtos/account/CreateUserDto";
-import { authenticate, RoleName } from "@ilm/auth-kit";
+import { authenticate, isRoleName } from "@ilm/auth-kit";
 import { requireRole } from "@ilm/auth-kit";
 import { validateBody } from "@ilm/http-kit";
 import * as userService from "../services/user.service";
 import { UpdateUserDto } from "../dtos/account/UpdateUserDto";
-import { LinkUserDto } from "../dtos/linkuser/LinkUserDto";
 
 export const userRouter = Router();
 
@@ -21,7 +20,11 @@ userRouter.get("/", async (req, res) => {
         Math.max(1, Number(req.query.pageSize) || DEFAULT_PAGE_SIZE),
     );
 
-    res.json(await userService.listUsers(page, pageSize));
+    // Optional filter, e.g. /users?role=student for role-scoped pickers.
+    const roleParam = req.query.role;
+    const role = isRoleName(roleParam) ? roleParam : undefined;
+
+    res.json(await userService.listUsers(page, pageSize, role));
 });
 
 userRouter.post("/", validateBody(CreateUserDto), async (req, res) => {
@@ -29,19 +32,6 @@ userRouter.post("/", validateBody(CreateUserDto), async (req, res) => {
     const user = await userService.createUser(username, password, roleIds, isActive!);
     req.log.info({ createdUserId: user.id, roleIds, by: req.user!.sub }, "user created by admin");
     res.status(201).json(user);
-});
-
-userRouter.post("/linkUser", validateBody(LinkUserDto), async (req, res) => {
-    const { userId, role, username, password } = req.body as LinkUserDto;
-    const user = await userService.createUser(username, password, [role], true);
-    req.log.info({ linkedUserId: user.id, by: req.user!.sub }, "user linked by admin");
-    res.json(user);
-});
-
-userRouter.get("/findUserByRole", async (req, res) => {
-    const roleName = req.query.roleName as RoleName;
-    const users = await userService.findUserByRole(roleName);
-    res.json(users);
 });
 
 userRouter.put("/:id", validateBody(UpdateUserDto), async (req, res) => {

@@ -15,3 +15,7 @@ export class UnableToDetermineCountryError extends BaseAppError {
     constructor() { super("Unable to determine country from phone number", 422, "UNABLE_TO_DETERMINE_COUNTRY"); }
 }
 
+
+export class UserAlreadyLinkedError extends BaseAppError {
+    constructor() { super("That user account is already linked to another student", 409, "USER_ALREADY_LINKED"); }
+}

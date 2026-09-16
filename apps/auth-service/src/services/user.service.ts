@@ -26,8 +26,8 @@ export const createUser = async (username: string, password: string, roles: stri
         throw error;
     };
 }
-export const listUsers = async (page: number, pageSize: number) => {
-    const { data, total } = await userRepo.listUsers((page - 1) * pageSize, pageSize);
+export const listUsers = async (page: number, pageSize: number, role?: RoleName) => {
+    const { data, total } = await userRepo.listUsers((page - 1) * pageSize, pageSize, role);
 
     return {
         data: data.map((u) => ({
@@ -47,13 +47,7 @@ export const listRoles = async () => {
     return await userRepo.listRoles();
 };
 
-export const findUserByRole = async (role: RoleName) => {
-    return await userRepo.findUserByRole(role);
-};
 
-export const unlinkedUsers = async (roleName: string) => {
-    return await userRepo.unlinkedUsers(roleName);
-};
 
 export const updateUser = async (id: string, roleIds: string[], isActive: boolean, actorId: string) => {
     if (!isActive && id === actorId) {

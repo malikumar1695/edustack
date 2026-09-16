@@ -2,17 +2,22 @@ import { requireRole } from "@ilm/auth-kit";
 import { validateBody } from "@ilm/http-kit";
 import { Router } from "express";
 import { CreateStudentDto } from "../dtos/student/CreateStudentDto";
+import { LinkUserDto } from "../dtos/student/LinkUserDto";
 import { UpdateStudentDto } from "../dtos/student/UpdateStudentDto";
 import * as studentService from "../services/student.service";
 
 export const studentRouter = Router();
 
-const DEFAULT_PAG_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
+
+studentRouter.get("/linked-user-ids", requireRole("admin", "teacher"), async (_req, res) => {
+    res.json(await studentService.linkedUserIds());
+});
 
 studentRouter.get("/", requireRole("admin", "teacher"), async (req, res) => {
     const page = Math.max(1, Number(req.query.current) || 1);
-    const pageSize = Math.min(Number(req.query.pageSize) || DEFAULT_PAG_SIZE, MAX_PAGE_SIZE);
+    const pageSize = Math.min(Number(req.query.pageSize) || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
 
     const students = await studentService.listStudents(page, pageSize);
     res.json(students);
@@ -35,30 +40,24 @@ studentRouter.put("/:id", requireRole("admin", "teacher"), validateBody(UpdateSt
     res.json(student);
 });
 
-studentRouter.get("/linkedUserIds", requireRole("admin", "teacher"), async (req, res) => {
-    const linkedUserIds = await studentService.linkedUserIds();
-    res.json(linkedUserIds);
-});
-studentRouter.put("/:id/linkUserToStudent", requireRole("admin", "teacher"), async (req, res) => {
-    const studentId = req.params.id;
-    const { userId, loginUsername } = req.body;
-
-    const student = await studentService.linkUserToStudent(studentId, userId, loginUsername);
-    req.log.info({ studentId: student.id, userId, loginUsername, by: req.user!.sub }, "user linked to student");
-    res.json(student);
-});
-
-studentRouter.delete("/:id/unlinkUser", requireRole("admin"), async (req, res) => {
-    const student = await studentService.unlinkUser(req.params.id);
-    req.log.info({ studentId: student.id, by: req.user!.sub }, "student unlinked from user account");
-    res.json(student);
-});
-
-
 studentRouter.delete("/:id", requireRole("admin", "teacher"), async (req, res) => {
     const studentId = req.params.id;
 
     await studentService.deleteStudent(studentId);
     req.log.info({ studentId, by: req.user!.sub }, "student deleted");
     res.status(204).send();
+});
+
+studentRouter.put("/:id/user", requireRole("admin"), validateBody(LinkUserDto), async (req, res) => {
+    const { userId, loginUsername } = req.body as LinkUserDto;
+
+    const student = await studentService.linkUserToStudent(req.params.id, userId, loginUsername);
+    req.log.info({ studentId: student.id, userId, by: req.user!.sub }, "user linked to student");
+    res.json(student);
+});
+
+studentRouter.delete("/:id/user", requireRole("admin"), async (req, res) => {
+    const student = await studentService.unlinkUser(req.params.id);
+    req.log.info({ studentId: student.id, by: req.user!.sub }, "student unlinked from user account");
+    res.json(student);
 });

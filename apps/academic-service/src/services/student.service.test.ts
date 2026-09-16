@@ -88,6 +88,7 @@ describe("create student", () => {
             phoneCountry: "PK",
             countryOfResidence: "PK",
             userId: null,
+            loginUsername: null,
             createdByUserId: actor.sub,
             createdByUsername: actor.username,
             createdAt: new Date(),

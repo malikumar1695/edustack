@@ -1,13 +1,11 @@
-import { PlusOutlined } from "@ant-design/icons";
-import { ModalForm, ProForm, ProFormDatePicker, ProFormSelect, ProFormText } from "@ant-design/pro-components";
+import { ModalForm, ProFormSelect } from "@ant-design/pro-components";
 import { Button, Col, Form, message, Row } from "antd";
-import { useState, useEffect } from "react";
-import type { StudentListItem, UserListItem } from "../../../lib/types";
+import { useEffect, useMemo, useState } from "react";
+import type { Role, StudentListItem, UserListItem } from "../../../lib/types";
+import { academicApi, authApi } from "../../../services/api";
 import { getApiErrorMessage } from "../../../services/errors";
 import UserFormFields from "../../account/users/components/UserFormFields";
-import { academicApi, authApi } from "../../../services/api";
-import { RoleName } from "@ilm/auth-kit";
-
+import type { RoleName } from "@ilm/auth-kit";
 type LinkStudentUserFormProps = {
     student: StudentListItem;
     open: boolean;
@@ -17,51 +15,78 @@ type LinkStudentUserFormProps = {
 
 type LinkStudentFormState = {
     userId?: string;
-    username: string;
-    password: string;
-    role: RoleName;
-}
+    username?: string;
+    password?: string;
+};
 
 const STUDENT_ROLE: RoleName = "student";
 
 const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUserFormProps) => {
-
     const [messageApi, messageApiContextHolder] = message.useMessage();
     const [loading, setLoading] = useState(false);
-    const [unlinkedUsers, setUnlinkedUsers] = useState<UserListItem[]>([]);
-    const [isCreateUserClicked, setIsCreateUserClicked] = useState(false);
-    const [users, setUsers] = useState<UserListItem[]>([]);
+    const [isCreatingUser, setIsCreatingUser] = useState(false);
 
-    const fetchUnlinkedUsers = async () => {
-        const [users, linkedUsers] = await Promise.all([
-            authApi.get<UserListItem[]>(`/users/findUserByRole?roleName=${STUDENT_ROLE}`),
-            academicApi.get<string[]>(`/students/linkedUserIds`)
-        ]);
-        setUsers(users.data);
-        const takenByOthers = linkedUsers.data.filter(id => id !== student.userId);
-        setUnlinkedUsers(users.data.filter((user: UserListItem) => !takenByOthers.includes(user.id)));
-    };
+    const [users, setUsers] = useState<UserListItem[]>([]);
+    const [linkedUserIds, setLinkedUserIds] = useState<string[]>([]);
+    const [studentRoleId, setStudentRoleId] = useState<string>();
 
     useEffect(() => {
-        if (open) {
-            fetchUnlinkedUsers();
-        }
-    }, [open]);
+        if (!open) return;
+
+        const load = async () => {
+            try {
+                // Each service answers only about its own data; the client composes.
+                // "Which accounts are free?" spans both, so it can't be one query.
+                const [userRes, linkedRes, roleRes] = await Promise.all([
+                    authApi.get<{ data: UserListItem[] }>("/users", {
+                        params: { role: STUDENT_ROLE, pageSize: 100 },
+                    }),
+                    academicApi.get<string[]>("/students/linked-user-ids"),
+                    authApi.get<Role[]>("/roles"),
+                ]);
+
+                setUsers(userRes.data.data);
+                setLinkedUserIds(linkedRes.data);
+                setStudentRoleId(roleRes.data.find((role) => role.name === STUDENT_ROLE)?.id);
+            } catch (error) {
+                messageApi.error(getApiErrorMessage(error));
+            }
+        };
+
+        load();
+    }, [open, messageApi]);
+
+    const userOptions = useMemo(() => {
+        // Exclude accounts taken by OTHER students — this student's own stays in
+        // the list so the Select can render it as the current selection.
+        const takenByOthers = linkedUserIds.filter((id) => id !== student.userId);
+
+        return users
+            .filter((user) => !takenByOthers.includes(user.id))
+            .map((user) => ({ label: user.username, value: user.id }));
+    }, [users, linkedUserIds, student.userId]);
 
     const submit = async (values: LinkStudentFormState) => {
-        const { userId } = values;
+        let userId = values.userId;
+        let loginUsername = users.find((user) => user.id === userId)?.username;
 
-        let linkedUserId = userId;
-        if (!linkedUserId) {
-            const clean = Object.fromEntries(
-                Object.entries(values).filter(([, v]) => v !== undefined && v !== null && v !== ""),
-            );
-            const res = await authApi.post("/users/linkUser", { ...clean, role: STUDENT_ROLE });
-            linkedUserId = res.data.id;
+        if (!userId) {
+            if (!studentRoleId) throw new Error("Student role is unavailable — try reopening the dialog.");
+
+            const { data: created } = await authApi.post<{ id: string; username: string }>("/users", {
+                username: values.username,
+                password: values.password,
+                roleIds: [studentRoleId],
+                isActive: true,
+            });
+
+            // Read both back from the response — `values.userId` is undefined on
+            // this path, so looking it up in `users` would store a null username.
+            userId = created.id;
+            loginUsername = created.username;
         }
 
-        const loginUsername = users.find(user => user.id === userId)?.username;
-        await academicApi.put(`/students/${student.id}/linkUserToStudent`, { userId: linkedUserId, loginUsername });
+        await academicApi.put(`/students/${student.id}/user`, { userId, loginUsername });
 
         messageApi.success("Linked successfully");
         reload?.();
@@ -72,23 +97,22 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
         <>
             {messageApiContextHolder}
             <ModalForm
-                title={"Link Student User"}
+                title={student.userId ? "Change Student Login" : "Link Student Login"}
                 open={open}
                 onOpenChange={(visible) => {
                     if (!visible) {
-                        setIsCreateUserClicked(false);
+                        setIsCreatingUser(false);
                         onClose?.();
                     }
                 }}
                 width="400px"
+                initialValues={{ userId: student.userId }}
                 modalProps={{ destroyOnClose: true, okButtonProps: { loading } }}
-                initialValues={{ userId: student.userId , username: users.find(user => user.id === student.userId)?.username }}
                 onFinish={async (values) => {
                     setLoading(true);
                     try {
                         return await submit(values as LinkStudentFormState);
                     } catch (error) {
-                        setLoading(false);
                         messageApi.error(getApiErrorMessage(error));
                         return false;
                     } finally {
@@ -100,29 +124,24 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
                     <Col span={16}>
                         <ProFormSelect
                             name="userId"
-                            mode="single"
                             label="User"
-                            placeholder="Select a user"
-                            options={unlinkedUsers.map((user) => ({ label: user.username, value: user.id }))}
-                            rules={[{ required: !isCreateUserClicked, message: "A user is required" }]}
+                            showSearch
+                            placeholder="Select an account"
+                            disabled={isCreatingUser}
+                            options={userOptions}
+                            rules={[{ required: !isCreatingUser, message: "A user is required" }]}
                         />
                     </Col>
                     <Col span={8}>
-                        <Form.Item label=" " >            {/* invisible label = vertical alignment */}
-                            <Button
-                                type="primary"
-                                block                                   // stretch to column width
-                                onClick={() => {
-                                    setIsCreateUserClicked(!isCreateUserClicked);
-                                }}
-                            >
-                                Create New User
+                        <Form.Item label=" ">{/* invisible label = vertical alignment */}
+                            <Button block onClick={() => setIsCreatingUser((v) => !v)}>
+                                {isCreatingUser ? "Select existing" : "Create new"}
                             </Button>
                         </Form.Item>
                     </Col>
                 </Row>
 
-                {isCreateUserClicked && <UserFormFields isEdit={false} />}
+                {isCreatingUser && <UserFormFields isEdit={false} />}
             </ModalForm>
         </>
     );

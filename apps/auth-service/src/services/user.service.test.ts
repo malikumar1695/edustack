@@ -96,7 +96,15 @@ describe("user.service listUsers", () => {
 
         await userService.listUsers(3, 10);
 
-        expect(userRepo.listUsers).toHaveBeenCalledWith(20, 10);
+        expect(userRepo.listUsers).toHaveBeenCalledWith(20, 10, undefined);
+    });
+
+    it("passes the role filter through to the repository", async () => {
+        vi.mocked(userRepo.listUsers).mockResolvedValue({ data: [], total: 0 } as any);
+
+        await userService.listUsers(1, 10, "student");
+
+        expect(userRepo.listUsers).toHaveBeenCalledWith(0, 10, "student");
     });
 
     it("flattens roles and derives `locked` from lockedUntil", async () => {

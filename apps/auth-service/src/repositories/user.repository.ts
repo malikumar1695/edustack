@@ -31,17 +31,6 @@ export function findUserById(id: string) {
     });
 }
 
-export const findUserByRole = async (role: RoleName) => {
-    return await prisma.user.findMany({
-        where: {
-            isDeleted: false,
-            isActive: true,
-            roles: { some: { role: { name: role } } },
-        },
-        select: { id: true, username: true }
-    });
-}
-
 export const registerFailedLoginAttempt = async (userId: string, currentAttempt: number) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new Error("User not found");
@@ -113,10 +102,17 @@ export const createUserWithRole = async (username: string, passwordHash: string,
     });
 }
 
-export const listUsers = async (skip: number, take: number) => {
+export const listUsers = async (skip: number, take: number, role?: RoleName) => {
+    // `role` is an optional filter so one endpoint serves both the admin table
+    // and role-scoped pickers, instead of a bespoke route per use case.
+    const where = {
+        isDeleted: false,
+        ...(role ? { roles: { some: { role: { name: role } } } } : {}),
+    };
+
     const [data, total] = await prisma.$transaction([
         prisma.user.findMany({
-            where: { isDeleted: false },
+            where,
             select: {
                 id: true,
                 username: true,
@@ -130,20 +126,13 @@ export const listUsers = async (skip: number, take: number) => {
             skip,
             take
         }),
-        prisma.user.count({ where: { isDeleted: false } })
+        prisma.user.count({ where })
     ]);
 
     return { data, total };
 }
 
-export const unlinkedUsers = async (roleName: string) => {
-    return await prisma.user.findMany({
-        where: {
-            isDeleted: false,
-            roles: { none: { role: { name: roleName } } },
-        },
-    });
-};
+
 
 export const listRoles = async () => {
     return await prisma.role.findMany({

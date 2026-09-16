@@ -62,11 +62,12 @@ const linkedUserIds = async (): Promise<string[]> => {
         where: { isDeleted: false, userId: { not: null } },
         select: { userId: true },
     });
-    return rows.map((r) => r.userId!);
+
+    return rows.map((row) => row.userId!);
 };
 
 
-const linkUserToStudent = async (studentId: string, userId: any, loginUsername: string) => {
+const linkUserToStudent = async (studentId: string, userId: string, loginUsername: string) => {
     return await prisma.student.update({
         where: { id: studentId },
         data: { userId, loginUsername },

@@ -2,7 +2,7 @@ import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { Prisma } from "../../prisma/generated";
 import { CreateStudentDto } from "../dtos/student/CreateStudentDto";
 import { UpdateStudentDto } from "../dtos/student/UpdateStudentDto";
-import { AdmissionNoTakenError, StudentNotFoundError, UnableToDetermineCountryError } from "../errors/AppError";
+import { AdmissionNoTakenError, StudentNotFoundError, UnableToDetermineCountryError, UserAlreadyLinkedError } from "../errors/AppError";
 import * as studentRepo from "../repositories/student.repository";
 
 type Actor = { sub: string, username: string };
@@ -64,11 +64,20 @@ const deleteStudent = async (id: string) => {
     return await studentRepo.softDeleteStudent(id);
 };
 
-const linkUserToStudent = async (studentId: string, userId: any, loginUsername: string) => {
+const linkUserToStudent = async (studentId: string, userId: string, loginUsername: string) => {
     const record = await studentRepo.getStudentById(studentId);
     if (!record) throw new StudentNotFoundError();
 
-    return await studentRepo.linkUserToStudent(studentId, userId, loginUsername);
+    try {
+        return await studentRepo.linkUserToStudent(studentId, userId, loginUsername);
+    } catch (error) {
+        // Student.userId is @unique — the client-side filter is UX, this is the
+        // guarantee. Two admins picking the same account land here.
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            throw new UserAlreadyLinkedError();
+        }
+        throw error;
+    }
 };
 
 const linkedUserIds = async () => await studentRepo.linkedUserIds();

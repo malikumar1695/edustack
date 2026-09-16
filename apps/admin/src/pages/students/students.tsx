@@ -108,7 +108,7 @@ const Students: React.FC = () => {
                             cancelText="Cancel"
                             onConfirm={() => initiateUnlinkUser(record)}
                         >
-                            <Button type="link" danger>
+                            <Button variant="link" color="orange" >
                                 Unlink User
                             </Button>
                         </Popconfirm>,

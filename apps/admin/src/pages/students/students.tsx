@@ -99,9 +99,19 @@ const Students: React.FC = () => {
                         {record.userId ? "Change User" : "Link User"}
                     </Button>,
                     ...(record.userId ? [
-                        <Button key="unlinkUser" type="link" onClick={() => initiateUnlinkUser(record)}>
-                            Unlink User
-                        </Button>,
+                        <Popconfirm
+                            key="unlinkUser"
+                            title="Unlink User"
+                            description={`Unlink user "${record.loginUsername}"? This cannot be undone.`}
+                            okText="Unlink"
+                            okButtonProps={{ danger: true }}
+                            cancelText="Cancel"
+                            onConfirm={() => initiateUnlinkUser(record)}
+                        >
+                            <Button type="link" danger>
+                                Unlink User
+                            </Button>
+                        </Popconfirm>,
                     ] : []),
                 ];
             },

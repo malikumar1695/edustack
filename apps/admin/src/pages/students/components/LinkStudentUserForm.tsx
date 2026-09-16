@@ -1,13 +1,12 @@
 import { PlusOutlined } from "@ant-design/icons";
-import { ModalForm, ProFormDatePicker, ProFormSelect, ProFormText } from "@ant-design/pro-components";
-import { Button, message } from "antd";
+import { ModalForm, ProForm, ProFormDatePicker, ProFormSelect, ProFormText } from "@ant-design/pro-components";
+import { Button, Col, Form, message, Row } from "antd";
 import { useState, useEffect } from "react";
 import type { StudentListItem, UserListItem } from "../../../lib/types";
 import { getApiErrorMessage } from "../../../services/errors";
 import UserFormFields from "../../account/users/components/UserFormFields";
-import { authApi } from "../../../services/api";
-import type { RoleName } from "../../../../../../packages/auth-kit/src/roles";
-
+import { academicApi, authApi } from "../../../services/api";
+import { RoleName } from "@ilm/auth-kit";
 
 type LinkStudentUserFormProps = {
     student: StudentListItem;
@@ -17,8 +16,10 @@ type LinkStudentUserFormProps = {
 };
 
 type LinkStudentFormState = {
+    userId?: string;
     username: string;
     password: string;
+    role: RoleName;
 }
 
 const STUDENT_ROLE: RoleName = "student";
@@ -28,9 +29,17 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
     const [messageApi, messageApiContextHolder] = message.useMessage();
     const [loading, setLoading] = useState(false);
     const [unlinkedUsers, setUnlinkedUsers] = useState<UserListItem[]>([]);
+    const [isCreateUserClicked, setIsCreateUserClicked] = useState(false);
+    const [users, setUsers] = useState<UserListItem[]>([]);
 
     const fetchUnlinkedUsers = async () => {
-        setUnlinkedUsers((await authApi.get(`/users/unlinkedUsers?roleName=${STUDENT_ROLE}`)).data);
+        const [users, linkedUsers] = await Promise.all([
+            authApi.get<UserListItem[]>(`/users/findUserByRole?roleName=${STUDENT_ROLE}`),
+            academicApi.get<string[]>(`/students/linkedUserIds`)
+        ]);
+        setUsers(users.data);
+        const takenByOthers = linkedUsers.data.filter(id => id !== student.userId);
+        setUnlinkedUsers(users.data.filter((user: UserListItem) => !takenByOthers.includes(user.id)));
     };
 
     useEffect(() => {
@@ -40,7 +49,23 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
     }, [open]);
 
     const submit = async (values: LinkStudentFormState) => {
-        // Implement the API call to link the student user here
+        const { userId } = values;
+
+        let linkedUserId = userId;
+        if (!linkedUserId) {
+            const clean = Object.fromEntries(
+                Object.entries(values).filter(([, v]) => v !== undefined && v !== null && v !== ""),
+            );
+            const res = await authApi.post("/users/linkUser", { ...clean, role: STUDENT_ROLE });
+            linkedUserId = res.data.id;
+        }
+
+        const loginUsername = users.find(user => user.id === userId)?.username;
+        await academicApi.put(`/students/${student.id}/linkUserToStudent`, { userId: linkedUserId, loginUsername });
+
+        messageApi.success("Linked successfully");
+        reload?.();
+        return true;
     };
 
     return (
@@ -50,17 +75,18 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
                 title={"Link Student User"}
                 open={open}
                 onOpenChange={(visible) => {
-                    if (!visible) onClose?.();
+                    if (!visible) {
+                        setIsCreateUserClicked(false);
+                        onClose?.();
+                    }
                 }}
                 width="400px"
                 modalProps={{ destroyOnClose: true, okButtonProps: { loading } }}
+                initialValues={{ userId: student.userId , username: users.find(user => user.id === student.userId)?.username }}
                 onFinish={async (values) => {
                     setLoading(true);
                     try {
-                        await submit(values as LinkStudentFormState);
-                        messageApi.success("Linked successfully");
-                        reload?.();
-                        return true;
+                        return await submit(values as LinkStudentFormState);
                     } catch (error) {
                         setLoading(false);
                         messageApi.error(getApiErrorMessage(error));
@@ -70,16 +96,33 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
                     }
                 }}
             >
-                <ProFormSelect
-                    name="roleId"
-                    mode="single"
-                    width="md"
-                    label="Role"
-                    placeholder="Select a role"
-                    options={unlinkedUsers.map((user) => ({ label: user.username, value: user.id }))}
-                    rules={[{ required: true, message: "A role is required" }]}
-                />
-                <UserFormFields isEdit={false} />
+                <Row gutter={8}>
+                    <Col span={16}>
+                        <ProFormSelect
+                            name="userId"
+                            mode="single"
+                            label="User"
+                            placeholder="Select a user"
+                            options={unlinkedUsers.map((user) => ({ label: user.username, value: user.id }))}
+                            rules={[{ required: !isCreateUserClicked, message: "A user is required" }]}
+                        />
+                    </Col>
+                    <Col span={8}>
+                        <Form.Item label=" " >            {/* invisible label = vertical alignment */}
+                            <Button
+                                type="primary"
+                                block                                   // stretch to column width
+                                onClick={() => {
+                                    setIsCreateUserClicked(!isCreateUserClicked);
+                                }}
+                            >
+                                Create New User
+                            </Button>
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                {isCreateUserClicked && <UserFormFields isEdit={false} />}
             </ModalForm>
         </>
     );

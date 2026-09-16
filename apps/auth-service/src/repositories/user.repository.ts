@@ -1,5 +1,6 @@
+import { RoleName } from "@ilm/auth-kit";
 import { prisma } from "../lib/prisma";
-import { Role } from "../types/Role";
+import { hashPassword } from "../utils/password";
 
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -27,6 +28,17 @@ export function findUserById(id: string) {
                 }
             }
         }
+    });
+}
+
+export const findUserByRole = async (role: RoleName) => {
+    return await prisma.user.findMany({
+        where: {
+            isDeleted: false,
+            isActive: true,
+            roles: { some: { role: { name: role } } },
+        },
+        select: { id: true, username: true }
     });
 }
 

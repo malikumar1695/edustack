@@ -20,7 +20,7 @@ const LOGIN_PATH = "/user/login";
 export function createHttpClient(baseURL: string) {
   const client = axios.create({
     baseURL,
-    timeout: 50_0000,
+    timeout: 100_0000,
     withCredentials: true,
     headers: {
       "Content-Type": "application/json",

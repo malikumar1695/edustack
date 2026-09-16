@@ -50,11 +50,35 @@ const createStudent = async (data: StudentWriteData & {
     return student;
 };
 
-export const updateStudent = (id: string, data: StudentWriteData) =>
-    prisma.student.update({ where: { id }, data });
+const updateStudent = async (id: string, data: StudentWriteData) => {
+    return await prisma.student.update({ where: { id }, data });
+};
 
-export const softDeleteStudent = (id: string) =>
-    prisma.student.update({ where: { id }, data: { isDeleted: true } });
+const softDeleteStudent = async (id: string) =>
+    await prisma.student.update({ where: { id }, data: { isDeleted: true } });
+
+const linkedUserIds = async (): Promise<string[]> => {
+    const rows = await prisma.student.findMany({
+        where: { isDeleted: false, userId: { not: null } },
+        select: { userId: true },
+    });
+    return rows.map((r) => r.userId!);
+};
 
 
-export { listStudents, getStudentById, createStudent, generateAdmissionNo };
+const linkUserToStudent = async (studentId: string, userId: any, loginUsername: string) => {
+    return await prisma.student.update({
+        where: { id: studentId },
+        data: { userId, loginUsername },
+    });
+};
+
+const unlinkUser = async (id: string) => {
+    return await prisma.student.update({
+        where: { id },
+        data: { userId: null, loginUsername: null },
+    });
+};
+
+export { listStudents, getStudentById, createStudent, generateAdmissionNo, linkUserToStudent, updateStudent, softDeleteStudent, linkedUserIds, unlinkUser };
+

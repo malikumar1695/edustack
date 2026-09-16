@@ -30,6 +30,17 @@ const Students: React.FC = () => {
         }
     };
 
+    const initiateUnlinkUser = async (record: StudentListItem): Promise<void> => {
+        try {
+            await academicApi.delete(`/students/${record.id}/unlinkUser`);
+            messageApi.success(`User unlinked from student ${record.firstName} ${record.lastName} successfully`);
+            reloadTable();
+        } catch (error) {
+            messageApi.error(getApiErrorMessage(error));
+        }
+    };
+
+
     const columns: ProColumns<StudentListItem>[] = [
         {
             title: "Admission#",
@@ -59,10 +70,18 @@ const Students: React.FC = () => {
             valueType: "dateTime",
         },
         {
+            title: "Login UserName",
+            dataIndex: "userUsername",
+            render: (_, r) => r.loginUsername
+                ? <Tag color="blue">{r.loginUsername}</Tag>
+                : <Tag>Not linked</Tag>,
+        },
+        {
             title: "Actions",
             valueType: "option",
             render: (_, record) => {
                 const isSelf = record.id === currentUser?.userid;
+
 
 
                 return [
@@ -87,8 +106,13 @@ const Students: React.FC = () => {
                             </Popconfirm>,
                         ]),
                     <Button key="linkUser" type="link" onClick={() => setLinkingStudentUser(record)}>
-                        Link User
+                        {record.userId ? "Change User" : "Link User"}
                     </Button>,
+                    ...(record.userId ? [
+                        <Button key="unlinkUser" type="link" onClick={() => initiateUnlinkUser(record)}>
+                            Unlink User
+                        </Button>,
+                    ] : []),
                 ];
             },
         },

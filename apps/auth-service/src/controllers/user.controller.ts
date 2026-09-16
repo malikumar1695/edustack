@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { CreateUserDto } from "../dtos/account/CreateUserDto";
-import { authenticate } from "@ilm/auth-kit";
+import { authenticate, RoleName } from "@ilm/auth-kit";
 import { requireRole } from "@ilm/auth-kit";
 import { validateBody } from "@ilm/http-kit";
 import * as userService from "../services/user.service";
 import { UpdateUserDto } from "../dtos/account/UpdateUserDto";
+import { LinkUserDto } from "../dtos/linkuser/LinkUserDto";
 
 export const userRouter = Router();
 
@@ -30,9 +31,16 @@ userRouter.post("/", validateBody(CreateUserDto), async (req, res) => {
     res.status(201).json(user);
 });
 
-userRouter.get("/unlinkedUsers", async (req, res) => {
-    const roleName = String(req.query.roleName);
-    const users = await userService.unlinkedUsers(roleName);
+userRouter.post("/linkUser", validateBody(LinkUserDto), async (req, res) => {
+    const { userId, role, username, password } = req.body as LinkUserDto;
+    const user = await userService.createUser(username, password, [role], true);
+    req.log.info({ linkedUserId: user.id, by: req.user!.sub }, "user linked by admin");
+    res.json(user);
+});
+
+userRouter.get("/findUserByRole", async (req, res) => {
+    const roleName = req.query.roleName as RoleName;
+    const users = await userService.findUserByRole(roleName);
     res.json(users);
 });
 

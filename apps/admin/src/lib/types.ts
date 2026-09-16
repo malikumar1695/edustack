@@ -16,6 +16,8 @@ export type UserListItem = {
 
 export type StudentListItem = {
     id: string;
+    userId?: string;
+    loginUsername?: string;
     admissionNo: string;
     firstName: string;
     lastName: string;

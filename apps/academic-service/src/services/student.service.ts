@@ -64,6 +64,23 @@ const deleteStudent = async (id: string) => {
     return await studentRepo.softDeleteStudent(id);
 };
 
+const linkUserToStudent = async (studentId: string, userId: any, loginUsername: string) => {
+    const record = await studentRepo.getStudentById(studentId);
+    if (!record) throw new StudentNotFoundError();
+
+    return await studentRepo.linkUserToStudent(studentId, userId, loginUsername);
+};
+
+const linkedUserIds = async () => await studentRepo.linkedUserIds();
+
+
+const unlinkUser = async (id: string) => {
+    const record = await studentRepo.getStudentById(id);
+    if (!record) throw new StudentNotFoundError();
+
+    return await studentRepo.unlinkUser(id);
+};
+
 export {
-    createStudent, deleteStudent, getStudentById, listStudents, updateStudent
+    createStudent, deleteStudent, getStudentById, listStudents, updateStudent, linkUserToStudent, linkedUserIds, unlinkUser
 };

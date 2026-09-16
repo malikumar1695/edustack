@@ -18,6 +18,7 @@ model Student {
     // Reference to a User in auth-service. Deliberately NOT a relation:
     // separate databases mean no foreign key and no cross-service join.
     userId String? @unique
+    loginUsername String? @unique
 
     // Denormalised at write time from the JWT — avoids a synchronous call to
     // auth-service just to display who created the record.

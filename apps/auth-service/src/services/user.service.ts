@@ -1,7 +1,8 @@
+import { RoleName } from "@ilm/auth-kit";
 import { Prisma } from "../../prisma/generated";
 import { ForbiddenError, InvalidRoleError } from "../errors/AppError";
-import * as userRepo from "../repositories/user.repository";
 import * as tokenRepo from "../repositories/refresh-token.repository";
+import * as userRepo from "../repositories/user.repository";
 import { hashPassword } from "../utils/password";
 import { UsernameTakenError } from "./auth.service";
 
@@ -46,6 +47,10 @@ export const listRoles = async () => {
     return await userRepo.listRoles();
 };
 
+export const findUserByRole = async (role: RoleName) => {
+    return await userRepo.findUserByRole(role);
+};
+
 export const unlinkedUsers = async (roleName: string) => {
     return await userRepo.unlinkedUsers(roleName);
 };
@@ -59,7 +64,6 @@ export const updateUser = async (id: string, roleIds: string[], isActive: boolea
     await tokenRepo.revokeAllForUser(id);
     return { id: user.id, username: user.username, roles: user.roles.map((r) => r.role.name), isActive: user.isActive };
 };
-
 
 export const deleteUser = async (id: string, actorId: string) => {
     if (id === actorId) throw new ForbiddenError("You cannot delete your own account.");

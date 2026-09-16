@@ -35,6 +35,26 @@ studentRouter.put("/:id", requireRole("admin", "teacher"), validateBody(UpdateSt
     res.json(student);
 });
 
+studentRouter.get("/linkedUserIds", requireRole("admin", "teacher"), async (req, res) => {
+    const linkedUserIds = await studentService.linkedUserIds();
+    res.json(linkedUserIds);
+});
+studentRouter.put("/:id/linkUserToStudent", requireRole("admin", "teacher"), async (req, res) => {
+    const studentId = req.params.id;
+    const { userId, loginUsername } = req.body;
+
+    const student = await studentService.linkUserToStudent(studentId, userId, loginUsername);
+    req.log.info({ studentId: student.id, userId, loginUsername, by: req.user!.sub }, "user linked to student");
+    res.json(student);
+});
+
+studentRouter.delete("/:id/unlinkUser", requireRole("admin"), async (req, res) => {
+    const student = await studentService.unlinkUser(req.params.id);
+    req.log.info({ studentId: student.id, by: req.user!.sub }, "student unlinked from user account");
+    res.json(student);
+});
+
+
 studentRouter.delete("/:id", requireRole("admin", "teacher"), async (req, res) => {
     const studentId = req.params.id;
 

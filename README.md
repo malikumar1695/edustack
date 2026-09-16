@@ -1,78 +1,289 @@
 # Ilm (علم — "knowledge")
 
-Practice project: a multi-role student management system, built to close specific gaps against two target job descriptions while reinforcing real CV strengths (Node/Express, Microservices Architecture, Docker/K8s). See `NOTES.md` for the session-by-session build log.
+A multi-role school management platform built as three Node/TypeScript microservices behind a React admin SPA. Roles — admin, teacher, student, parent — drive what each user can see and do.
 
-## Structure
+This is a learning project, and the interesting part is the decisions rather than the CRUD. Each one below is written with its tradeoff, because a choice you can't argue against isn't a choice.
+
+---
+
+## Status
+
+| Component | State |
+|---|---|
+| `auth-service` | Working — login, refresh rotation, RBAC, user management. 33 unit tests. |
+| `academic-service` | Working — student records, linking to login accounts. 4 unit tests. |
+| `admin` (React SPA) | Working — user and student management screens. |
+| `notification-service` | **Scaffold only** — health endpoint. Event-driven design not yet built. |
+| `web` (Next.js) | Reference implementation of the BFF proxy pattern. Not actively developed. |
+| Deployment | **Not deployed yet.** Docker + CI is the next milestone. |
+
+---
+
+## Screenshots
+
+**User management** — roles, account status, and brute-force lockout state. The admin's own row has no Delete action; that guard is enforced server-side too.
+
+![Users screen](docs/screenshots/users.png)
+
+**Student roster** — phone numbers normalised to E.164, countries stored as ISO codes and rendered as names, and the linked login account shown from a denormalised copy rather than a call to auth-service. Row actions change with link state.
+
+![Students screen](docs/screenshots/students.png)
+
+---
+
+## Architecture
+
+```mermaid
+graph TB
+    Admin["admin SPA<br/>React + Vite :5174"]
+
+    Auth["auth-service :4001<br/>identity, roles, JWT"]
+    Academic["academic-service :4002<br/>students"]
+    Notify["notification-service :4003<br/>(scaffold)"]
+
+    AuthDB[("Postgres<br/>auth")]
+    AcadDB[("Postgres<br/>academic")]
+
+    Admin -->|"login → access token"| Auth
+    Admin -->|"Bearer token"| Academic
+    Auth --- AuthDB
+    Academic --- AcadDB
+
+    Auth -.->|"RS256 public key<br/>(no runtime call)"| Academic
+```
+
+The dotted line is the important one: `academic-service` verifies tokens **locally** using the public half of an RS256 keypair. There is no runtime call to `auth-service` on the request path — if `auth-service` is down, `academic-service` keeps authenticating requests normally.
 
 ```
 ilm/
 ├── apps/
-│   ├── admin/                  :5174 — Vite + React + TS + React Router + Ant
-│   │                          Design + Ant Design Pro's ProComponents. The
-│   │                          admin/dashboard UI — plain client-side React, no
-│   │                          framework underneath (ported off UmiJS Max in
-│   │                          full — see NOTES.md). Calls the three services
-│   │                          directly (no proxy); each service's CORS config
-│   │                          allows this origin.
-│   │
-│   ├── web/                  Next.js 14 (App Router) + TS + Tailwind — the
-│   │                          public-facing side (catalog/announcements,
-│   │                          SSR/ISR for SEO) plus the BFF proxy pattern at
-│   │                          app/api/[service]/[...path]. Its own /dashboard
-│   │                          route still exists as a reference for the BFF
-│   │                          approach, but apps/admin is where the real
-│   │                          admin UI is being built.
-│   │
-│   ├── auth-service/          :4001 — Express + TS. Users, roles, JWT issuing,
-│   │                          RBAC. Every other service verifies tokens against it.
-│   │
-│   ├── academic-service/      :4002 — Express + TS. Students, classes, enrollments,
-│   │                          attendance, grades (Postgres/Prisma) + free-text
-│   │                          teacher notes (MongoDB) + the GraphQL layer.
-│   │
-│   ├── notification-service/  :4003 — Express + TS. Real-time alerts (Socket.io +
-│   │                          Redis pub/sub) when a grade or announcement lands.
-│   │
-│   └── ant-design-pro-master/ Read-only reference. The original UmiJS Max
-│                              template every apps/admin page was ported from.
-│                              Not built, not run, not touched going forward —
-│                              kept only in case a ported page needs re-checking
-│                              against the original.
-│
-├── README.md
-└── NOTES.md                   Running build log, updated every session.
+│   ├── auth-service/        :4001  identity, roles, tokens
+│   ├── academic-service/    :4002  student records
+│   ├── notification-service/:4003  scaffold
+│   ├── admin/               :5174  React admin SPA
+│   ├── web/                 :3000  Next.js + BFF proxy (reference)
+│   └── ant-design-pro-master/      read-only template reference
+└── packages/
+    ├── http-kit/            logging, error mapping, request ids, validation
+    └── auth-kit/            JWT verification, authenticate / requireRole
 ```
 
-Three backend services, not five — `student-service`, `attendance-service`,
-and `grade-service` were consolidated into `academic-service` since they share
-the same relational data and would otherwise call each other constantly for
-no real isolation benefit. `auth-service` and `notification-service` earn
-their own boundary: auth is a genuine trust boundary every other service
-depends on, and notifications are event-driven rather than request/response.
+---
 
-**Two frontends, on purpose, not by accident.** `apps/admin` is a plain React
-SPA — no BFF, each service called directly from the browser, CORS doing the
-real work. `apps/web` is Next.js with a BFF proxy — one entry point for all
-three services, no CORS needed at all since calls happen server-to-server.
-Building the same idea both ways is deliberate: it's what makes the "why
-Next.js over plain React" tradeoff a real, felt thing instead of a talking
-point memorized from a plan.
+## The decisions
+
+### Why three services, and why not five
+
+Originally planned as five. `student-service`, `attendance-service`, and `grade-service` were merged into `academic-service` because they share the same relational data and would have spent their lives calling each other — distributed joins and cross-service transactions for no isolation benefit.
+
+The three that remain each differ on an axis that justifies a boundary:
+
+- **`auth-service` is a trust boundary.** It holds password hashes and the token signing key. A vulnerability in the grades UI shouldn't put the credential store in blast radius. Its load profile is also different — bursty at login, quiet after.
+- **`academic-service` is the transactional domain.** Relational, request/response, needs ACID within itself.
+- **`notification-service` is event-driven.** A different communication pattern entirely, and it can be down without breaking anything critical.
+
+**Tradeoff:** network calls where function calls would do, three deploy pipelines, and harder debugging — which is why request ids propagate across services (see Observability).
+
+**Honest note:** at this scale a modular monolith would be the correct production choice. The split is deliberate, to build real service boundaries rather than read about them.
+
+### Database per service
+
+Each service owns its own Postgres database. No shared tables, no cross-service queries.
+
+If two services read the same tables you don't have microservices — you have a distributed monolith with added latency, where one migration forces a coordinated deploy of everything that touches it.
+
+**What it costs, concretely in this codebase:**
+
+- `Student.userId` references a `User` in `auth-service` with **no foreign key** and no referential integrity. A typo'd id would be stored happily.
+- "Which student accounts are unlinked?" spans both databases, so it can't be one query. The admin SPA fetches from each service and composes client-side. In a monolith this is one `WHERE NOT EXISTS`.
+- No ACID across services. Creating a login *and* linking it is two writes in two databases (see Distributed transactions).
+
+### RS256 over HS256
+
+**HS256 is symmetric** — one shared secret for signing and verifying. Give `academic-service` the ability to verify tokens and you've given it the ability to mint an admin token for anyone. A vulnerability in the least sensitive service becomes a full authentication compromise.
+
+**RS256 is asymmetric.** `auth-service` holds the private key and is the only thing that can sign. Everything else gets the public key, which verifies but cannot sign — and isn't a secret, so it can live in an env var or be published at a URL.
+
+`packages/auth-kit` deliberately contains **only** verification. There is no code path in it that can produce a token.
+
+Verification also pins the algorithm:
+
+```ts
+jwt.verify(token, publicKey, { algorithms: ["RS256"], issuer: TOKEN_ISSUER })
+```
+
+Without `algorithms`, a forged token could declare `"alg": "none"`, or be HMAC-signed using the public key as the shared secret — the classic algorithm-confusion attack.
+
+**Tradeoff:** slower than HMAC, and there are keys to manage. For a single monolith, HS256 would be fine. The moment there's a second verifier, it isn't.
+
+### RBAC without per-user permissions
+
+Roles hold permissions; users hold roles. There is **no** direct user→permission assignment, matching the NIST core RBAC model.
+
+The deciding argument is auditability. Ask *"who can delete grades?"*:
+
+- Role-only: find the roles holding `grade:delete`, then who holds those roles. One query.
+- With per-user overrides: scan every user, because any of them might have an ad-hoc grant. There's no longer a single place that describes access.
+
+Kubernetes RBAC, GitHub, and Slack all work this way. AWS IAM is policy-based because it's a *platform* serving arbitrary organisations — and IAM policy evaluation is famously hard to reason about. That's the complexity being avoided.
+
+**Tradeoff:** less flexible. The answer to "this user needs slightly different access" is a new role, or making roles themselves editable — not a per-user exception.
+
+`RolePermission` is an **explicit** join model rather than Prisma's implicit many-to-many. That costs an extra hop in every query (`role.permissions[].permission.name`) and buys the ability to put columns on the relationship itself — `grantedAt`, `grantedBy`, `expiresAt`. Audit metadata on permission grants is a normal requirement; implicit m2m locks you out of it.
+
+### Refresh token rotation with reuse detection
+
+Access tokens live 15 minutes. Refresh tokens are single-use and rotate on every refresh.
+
+If a refresh token is presented twice, two parties hold it — the legitimate user and a thief — and there's no way to tell which is which. So the entire token family for that user is revoked and everyone re-authenticates.
+
+Tokens are stored as SHA-256 hashes, so a database dump doesn't yield usable credentials.
+
+Refresh tokens are also revoked when a user's roles change or their account is disabled — otherwise a demoted admin keeps elevated access, baked into their JWT, until it expires.
+
+### Argon2 over bcrypt
+
+Argon2 won the 2015 Password Hashing Competition and is OWASP's current recommendation. Unlike bcrypt it's **memory-hard**, which defeats GPU and ASIC cracking rigs — bcrypt is CPU-hard only, and modern hardware parallelises it cheaply.
+
+### Write-time denormalisation
+
+`Student` stores `createdByUsername` and `loginUsername` — display copies of data owned by `auth-service`.
+
+The alternative is calling `auth-service` on every roster read to resolve ids into names, which couples the read path to another service's availability. Copying the value at write time removes that dependency entirely.
+
+**Tradeoff:** the copy goes stale if a username changes. For an audit field that's arguably correct — it records who acted under the name they had at the time. If freshness mattered, a `user.updated` event would keep it current.
+
+### Soft delete
+
+Users and students are flagged `isDeleted` rather than removed — grades must remain attributable to a teacher who has left, and transcripts must survive an account being deleted.
+
+**Tradeoff:** every query must remember to filter. `findUserByUsername` uses `findFirst({ username, isDeleted: false })` precisely because a soft-deleted user could otherwise still log in. The unique `username` also stays occupied, so the name can't be reused.
+
+### Shared packages: transport only, never domain
+
+`packages/http-kit` and `packages/auth-kit` contain logging, error mapping, request ids, validation, and JWT verification — and **zero domain concepts**. No `User`, no `Student`, no `Gender`.
+
+Sharing a domain model across services recreates exactly the coupling microservices exist to remove: change it and every service needs redeploying in lockstep. Sharing transport plumbing has no such effect.
+
+They were extracted when a second service genuinely needed them, not up front — a shared library designed before you have two real consumers is shaped by guesswork.
+
+**Tradeoff:** the monorepo moves together. A breaking change to `http-kit` hits all services at once and can't be rolled out gradually. That's correct inside one repo with one owner; separately owned services would want versioned, published packages instead.
+
+### Observability
+
+Structured JSON logs via pino, to stdout only — never files, so any platform's log driver can collect them.
+
+Every request carries an `x-request-id`: reused if the caller supplied one, generated otherwise, echoed on the response, and attached to every log line for that request. The same id appears in error responses, so a user-reported failure maps to an exact log line.
+
+Redaction is declared once in the logger config — `authorization`, `cookie`, `set-cookie`, and any `password`, `passwordHash`, `accessToken`, or `refreshToken` field — so no call site can accidentally log a credential.
+
+### Phone numbers stored as E.164
+
+Guardian phone numbers are normalised to `+97455551234` before validation, so `+974 5555 1234`, `05555 1234`, and the canonical form all become the same stored value. `phoneCountry` is **derived server-side** from the normalised number rather than accepted from the client, so the two can't disagree.
+
+Countries are stored as ISO 3166-1 alpha-2 codes (`QA`), never display names — names change (Turkey → Türkiye), vary by language, and have no canonical form. `Intl.DisplayNames` renders them at display time, localising for free.
+
+---
+
+## Distributed transactions
+
+Creating a login for a student means two writes in two databases:
+
+```
+POST /users              → auth-service creates the account
+PUT  /students/:id/user  → academic-service records the link
+```
+
+There is no transaction spanning both. If the second fails, an orphan account exists.
+
+**The chosen approach:** the admin SPA orchestrates both calls, and a failure surfaces to the operator, who retries the link — the account already exists, so it's one click. Deliberate: this is a rare, admin-initiated action with a human watching, and the human is a better retry mechanism than exponential backoff because they can decide whether it still matters.
+
+**What a stricter system would do:** a transactional outbox — write the job in the same local transaction as the state change, drain it with a worker that retries with backoff, make the downstream call idempotent, and dead-letter what can't succeed. That's the right answer when nobody is waiting; it's overkill for an action an operator can resolve immediately.
+
+Neither service writes to the other's database in any variant. The trigger may move; the ownership doesn't.
+
+---
+
+## Known gaps
+
+Deliberate, not oversights:
+
+- **The access token is kept in `localStorage`**, which is readable by any injected script — an XSS becomes account takeover. The stronger pattern is holding it in memory and re-acquiring it via the refresh cookie on page load. The refresh token *is* already `httpOnly`, `sameSite=strict`, and scoped to `/auth`.
+- **No API gateway.** The SPA calls each service directly. Real deployments put a gateway in front for routing, rate limiting, and auth termination.
+- **No service discovery** — service URLs are configuration.
+- **No resilience patterns.** No circuit breakers or retries, because there are currently no synchronous service-to-service calls to protect. They'd be added alongside the first one.
+- **`notification-service` is a scaffold.** Until it exists, every interaction is synchronous request/response — the weakest form of decoupling.
+- **Integration tests are unreliable** against the hosted database and are excluded from the default run.
+
+---
 
 ## Running locally
 
+Requires Node 20+ and two Postgres databases (Neon free tier works).
+
+```bash
+npm install                 # from the repo root — npm workspaces
+npm run build:packages      # http-kit and auth-kit compile to dist/
 ```
-# terminal 1
-cd apps/auth-service && npm run dev          # http://localhost:4001
 
-# terminal 2
-cd apps/academic-service && npm run dev      # http://localhost:4002
+Each service needs a `.env` (see `.env.example` in each). `academic-service` needs `JWT_PUBLIC_KEY` — the public half of `auth-service`'s keypair, as an inline PEM with escaped newlines.
 
-# terminal 3
-cd apps/notification-service && npm run dev  # http://localhost:4003
+```bash
+# auth-service
+cd apps/auth-service
+npx prisma migrate deploy && npx prisma db seed   # roles, permissions, an admin user
+npm run dev                                       # :4001
 
-# terminal 4 — plain React admin (the one being actively built)
-cd apps/admin && npm run dev                 # http://localhost:5174
+# academic-service
+cd apps/academic-service
+npx prisma migrate deploy
+npm run dev                                       # :4002
 
-# terminal 5 — Next.js public site + BFF (optional, for the SEO/proxy side)
-cd apps/web && npm run dev                   # http://localhost:3000
+# admin SPA
+cd apps/admin && npm run dev                      # :5174
 ```
+
+Tests:
+```bash
+npx vitest run src/    # from either service — unit tests only
+```
+
+---
+
+## API
+
+**auth-service** — `/auth` is public, everything else requires an admin token.
+
+| | |
+|---|---|
+| `POST /auth/login` | issue access token + refresh cookie |
+| `POST /auth/refresh` | rotate refresh token, issue new access token |
+| `POST /auth/logout` | revoke the refresh token |
+| `GET /users?role=&current=&pageSize=` | paginated, optionally filtered by role |
+| `POST /users` · `PUT /users/:id` · `DELETE /users/:id` | create, update roles/status, soft delete |
+| `POST /users/:id/unlock` | clear a brute-force lockout |
+| `GET /roles` | roles for pickers |
+
+**academic-service** — all routes require a valid token.
+
+| | |
+|---|---|
+| `GET /students?current=&pageSize=` | paginated roster (admin, teacher) |
+| `POST /students` · `PUT /students/:id` · `DELETE /students/:id` | manage records |
+| `PUT /students/:id/user` · `DELETE /students/:id/user` | link / unlink a login account (admin) |
+| `GET /students/linked-user-ids` | ids already linked, for client-side composition |
+
+Errors are uniform across both services:
+
+```json
+{ "error": { "code": "USERNAME_TAKEN", "message": "Username is already taken", "requestId": "b6073fd3-…" } }
+```
+
+---
+
+## Next
+
+1. Docker + CI, deployed behind a live URL
+2. Event-driven `notification-service` — a transactional outbox so a committed grade can't lose its notification
+3. JWKS endpoint, so signing keys rotate without redeploying every consumer
+4. OpenAPI specs, with the admin client generated from them

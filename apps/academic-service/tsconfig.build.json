@@ -1,0 +1,7 @@
+{
+  // Build-only: excludes tests so they are neither compiled into dist nor
+  // require vitest types at build time. Use tsconfig.json for typechecking,
+  // which still covers the tests.
+  "extends": "./tsconfig.json",
+  "exclude": ["**/*.test.ts", "tests"]
+}

@@ -12,12 +12,17 @@ WORKDIR /repo
 
 # Manifests before source: this layer only rebuilds when dependencies change,
 # so editing code doesn't trigger a full reinstall.
-COPY package.json ./
+COPY package.json package-lock.json ./
+# Every workspace declared in the root package.json must exist, or npm's
+# dependency graph resolution crashes ("Cannot read properties of null").
+# These are tiny and change rarely, so the install layer still caches well.
 COPY packages/http-kit/package.json packages/http-kit/
 COPY packages/auth-kit/package.json packages/auth-kit/
 COPY apps/auth-service/package.json apps/auth-service/
+COPY apps/academic-service/package.json apps/academic-service/
+COPY apps/notification-service/package.json apps/notification-service/
 
-RUN npm install --include-workspace-root \
+RUN npm ci --include-workspace-root \
     --workspace @ilm/http-kit \
     --workspace @ilm/auth-kit \
     --workspace @ilm/auth-service
@@ -39,14 +44,19 @@ WORKDIR /repo
 ENV NODE_ENV=production
 
 # Fresh filesystem: the builder stage's manifests are not here.
-COPY package.json ./
+COPY package.json package-lock.json ./
+# Every workspace declared in the root package.json must exist, or npm's
+# dependency graph resolution crashes ("Cannot read properties of null").
+# These are tiny and change rarely, so the install layer still caches well.
 COPY packages/http-kit/package.json packages/http-kit/
 COPY packages/auth-kit/package.json packages/auth-kit/
 COPY apps/auth-service/package.json apps/auth-service/
+COPY apps/academic-service/package.json apps/academic-service/
+COPY apps/notification-service/package.json apps/notification-service/
 
 # --omit=dev drops typescript, vitest and the prisma CLI. The cache is cleaned
 # in the same RUN because layers are additive — a later delete wouldn't shrink it.
-RUN npm install --omit=dev --include-workspace-root \
+RUN npm ci --omit=dev --include-workspace-root \
     --workspace @ilm/http-kit \
     --workspace @ilm/auth-kit \
     --workspace @ilm/auth-service \

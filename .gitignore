@@ -6,11 +6,16 @@ node_modules/
 .pnpm-store/
 
 # ─── Lockfiles ──────────────────────────────────────────────────────────────
-# NOTE: ignoring lockfiles means fresh installs may resolve different
-# transitive versions than what was tested. Committing them is the norm.
-package-lock.json
+# Lockfiles ARE committed — reproducible installs, and `npm ci` (used by the
+# Dockerfiles and CI) requires one. Not optional here either: without it npm's
+# workspace + overrides resolution crashes inside the container.
 yarn.lock
 pnpm-lock.yaml
+
+# apps/web is a read-only reference (per README) — never built or deployed,
+# so its lockfile buys nothing. Same for the Ant Design Pro template.
+apps/web/package-lock.json
+apps/ant-design-pro-master/package-lock.json
 
 # ─── Build outputs ──────────────────────────────────────────────────────────
 dist/
@@ -89,3 +94,4 @@ apps/api/
 .cursor/
 .aider*
 skills-lock.json
+apps/admin/package-lock.json

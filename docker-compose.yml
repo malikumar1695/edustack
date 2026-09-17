@@ -1,0 +1,60 @@
+# Local verification that the images build and run before any cloud is involved.
+# Databases stay on Neon — each service keeps its own, per database-per-service.
+#
+#   docker compose --env-file .env.docker up --build
+#
+# Migrations are NOT run here: the prisma CLI is a devDependency and is stripped
+# from the runtime image. Apply them from your machine first:
+#   cd apps/auth-service && npx prisma migrate deploy
+
+services:
+  auth-service:
+    build:
+      context: .                                  # repo root — workspaces need it
+      dockerfile: apps/auth-service/Dockerfile
+    ports:
+      - "4001:4001"
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+      LOG_LEVEL: info
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      DATABASE_URL: ${AUTH_DATABASE_URL}
+      # Inline PEMs with escaped newlines, unescaped at load. Keys are
+      # supplied at runtime, never baked into the image.
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+    healthcheck:
+      # node -e, not curl — alpine ships no curl, and Node 22 has fetch built in.
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  academic-service:
+    build:
+      context: .
+      dockerfile: apps/academic-service/Dockerfile
+    ports:
+      - "4002:4002"
+    environment:
+      NODE_ENV: production
+      PORT: 4002
+      LOG_LEVEL: info
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      DATABASE_URL: ${ACADEMIC_DATABASE_URL}
+      # Public key only — this service verifies tokens and can never mint one.
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        # Plain depends_on only waits for "started"; this waits for healthy.
+        condition: service_healthy

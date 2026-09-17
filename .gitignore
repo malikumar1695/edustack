@@ -26,12 +26,13 @@ out/
 .prisma/
 
 # ─── Environment (keep .env.example committed as documentation) ─────────────
+# Ignore every env file by default, then re-include the committed templates.
+# A deny-list (.env.local, .env.development, ...) misses new names like
+# .env.docker — which is how a real signing key nearly got committed.
 .env
-.env.local
-.env.*.local
-.env.development
-.env.production
+.env.*
 !.env.example
+!.env.*.example
 
 # ─── Logs ───────────────────────────────────────────────────────────────────
 logs/

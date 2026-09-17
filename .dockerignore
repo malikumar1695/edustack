@@ -1,0 +1,25 @@
+# Build context is the repo root, so this keeps images small and cache-friendly.
+**/node_modules
+**/dist
+**/prisma/generated
+**/coverage
+
+# Secrets and local config — supplied as env vars at runtime instead
+**/.env
+**/.env.*
+!**/.env.example
+**/keys/*.pem
+
+.git
+.github
+docs
+*.md
+!README.md
+
+# Reference-only apps, never containerised
+apps/ant-design-pro-master
+apps/web
+
+**/.vscode
+**/.idea
+**/*.log

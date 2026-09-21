@@ -94,4 +94,3 @@ apps/api/
 .cursor/
 .aider*
 skills-lock.json
-apps/admin/package-lock.json

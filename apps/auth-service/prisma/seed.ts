@@ -65,14 +65,23 @@ const main = async () => {
 
     console.log(`Seeded ${ROLE_NAMES.length} roles and ${ALL_PERMISSIONS.length} permissions.`);
 
+    
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (!adminPassword && process.env.NODE_ENV === "production") {
+        throw new Error(
+            "SEED_ADMIN_PASSWORD must be set when seeding with NODE_ENV=production.",
+        );
+    }
+
     const adminUser = await prisma.user.upsert({
         where: { username: "admin" },
         update: {},
         create: {
             username: "admin",
-            passwordHash: await hashPassword("admin"),
+            passwordHash: await hashPassword(adminPassword ?? "admin"),
         },
     });
+
 
     const adminRoleId = roleIdByName.get("admin")!;
     await prisma.userRole.upsert({

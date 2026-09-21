@@ -6,6 +6,7 @@ import * as userRepo from "../repositories/user.repository";
 import { UsernameTakenError } from "./auth.service";
 import * as userService from "./user.service";
 
+vi.mock("../lib/prisma", () => ({ prisma: {} }));
 vi.mock("../repositories/user.repository");
 vi.mock("../repositories/refresh-token.repository");
 vi.mock("../utils/password", () => ({
@@ -19,7 +20,7 @@ describe("user.service createUser", () => {
     beforeEach(() => vi.resetAllMocks());
     it("maps the created user's roles to names", async () => {
         vi.mocked(userRepo.createUserWithRole).mockResolvedValue({
-            id: "u1", username: "user1", roles: [{ role: { name:"r1" } }]
+            id: "u1", username: "user1", roles: [{ role: { name: "r1" } }]
         } as any);
 
         const result = await userService.createUser("user1", "pass123", ["r1"], true);

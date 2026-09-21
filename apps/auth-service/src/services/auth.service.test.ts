@@ -7,8 +7,11 @@ import * as authService from "./auth.service";
 import { AccountDisabledError, RefreshTokenReuseDetectedError } from "../errors/AppError";
 
 
+vi.mock("../lib/prisma", () => ({ prisma: {} }));
 vi.mock("../repositories/user.repository");
 vi.mock("../repositories/refresh-token.repository");
+
+
 vi.mock("../config/jwt", () => ({
     signAccessToken: vi.fn(() => "fake.access.token"),
     refreshTokenExpiry: vi.fn(() => new Date(Date.now() + 3600_000)),

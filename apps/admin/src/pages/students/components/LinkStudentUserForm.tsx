@@ -5,7 +5,8 @@ import type { Role, StudentListItem, UserListItem } from "../../../lib/types";
 import { academicApi, authApi } from "../../../services/api";
 import { getApiErrorMessage } from "../../../services/errors";
 import UserFormFields from "../../account/users/components/UserFormFields";
-import type { RoleName } from "@ilm/auth-kit";
+import type { RoleName } from "../../../lib/constants";
+
 type LinkStudentUserFormProps = {
     student: StudentListItem;
     open: boolean;

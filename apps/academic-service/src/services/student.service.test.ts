@@ -6,7 +6,9 @@ import * as studentService from "./student.service";
 import { Gender, Prisma, Student } from "../../prisma/generated";
 
 
+vi.mock("../lib/prisma", () => ({ prisma: {} }));
 vi.mock("../repositories/student.repository");
+
 
 const prismaError = (code: string) =>
     new Prisma.PrismaClientKnownRequestError("db error", { code, clientVersion: "test" });

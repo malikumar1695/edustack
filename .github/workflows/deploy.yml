@@ -1,0 +1,84 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+  # Lets you redeploy without pushing a commit.
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    # workflow_run fires whether CI passed or failed, so this guard is required.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write # required to mint the OIDC token WIF exchanges
+
+    strategy:
+      # Image name and Cloud Run service name differ, so they're paired
+      # explicitly rather than derived from one another.
+      matrix:
+        include:
+          - service: auth-service
+            image: auth
+          - service: academic-service
+            image: academic
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Build the exact commit CI verified, not whatever is newest on master.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      # No stored key: GitHub's OIDC token is exchanged for a short-lived GCP
+      # credential, gated by the attribute condition on the WIF provider.
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authenticate Docker to Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push
+        env:
+          REGISTRY: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ilm
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          TAG="${SHA:0:7}"
+          IMAGE="$REGISTRY/${{ matrix.image }}"
+
+          # Two tags: the sha is what gets deployed and makes rollback possible;
+          # latest is a convenience pointer.
+          docker build --platform linux/amd64 \
+            -f apps/${{ matrix.service }}/Dockerfile \
+            -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
+
+          docker push "$IMAGE:$TAG"
+          docker push "$IMAGE:latest"
+
+      - name: Deploy to Cloud Run
+        env:
+          REGISTRY: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ilm
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          TAG="${SHA:0:7}"
+
+          # Only the image changes. Env vars and secrets set at first deploy are
+          # carried forward by the new revision — passing them again risks
+          # silently dropping one that isn't listed here.
+          gcloud run deploy ${{ matrix.service }} \
+            --image="$REGISTRY/${{ matrix.image }}:$TAG" \
+            --region=${{ vars.GCP_REGION }} \
+            --quiet
+
+      - name: Show service URL
+        run: |
+          gcloud run services describe ${{ matrix.service }} \
+            --region=${{ vars.GCP_REGION }} --format="value(status.url)"

@@ -1,9 +1,12 @@
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { Prisma } from "../../prisma/generated";
+import { logger } from "@ilm/http-kit";
 import { CreateStudentDto } from "../dtos/student/CreateStudentDto";
 import { UpdateStudentDto } from "../dtos/student/UpdateStudentDto";
 import { AdmissionNoTakenError, StudentNotFoundError, UnableToDetermineCountryError, UserAlreadyLinkedError } from "../errors/AppError";
 import * as studentRepo from "../repositories/student.repository";
+import { publishStudentCreated } from "../lib/events";
+import { randomUUID } from "crypto";
 
 type Actor = { sub: string, username: string };
 
@@ -21,10 +24,12 @@ const getStudentById = async (id: string) => await studentRepo.getStudentById(id
 
 const createStudent = async (dto: CreateStudentDto, actor: Actor) => {
     const phoneCountry = phoneCountryOf(dto.guardianPhone);
-
     const admissionNo = await studentRepo.generateAdmissionNo();
+
+    let student: Awaited<ReturnType<typeof studentRepo.createStudent>>;
+
     try {
-        return await studentRepo.createStudent({
+        student = await studentRepo.createStudent({
             ...dto,
             admissionNo,
             dateOfBirth: new Date(dto.dateOfBirth),
@@ -38,7 +43,26 @@ const createStudent = async (dto: CreateStudentDto, actor: Actor) => {
         }
         throw error;
     }
+    
+    try {
+        await publishStudentCreated({
+            eventId: randomUUID(),
+            type: "student.created",
+            occurredAt: new Date().toISOString(),
+            data: {
+                studentId: student.id,
+                admissionNo: student.admissionNo,
+                firstName: student.firstName,
+                lastName: student.lastName,
+            },
+        });
+    } catch (error) {
+        logger.error({ err: error, studentId: student.id }, "failed to publish student.created");
+    }
+
+    return student;
 };
+
 
 
 const updateStudent = async (id: string, dto: UpdateStudentDto, actor: Actor) => {

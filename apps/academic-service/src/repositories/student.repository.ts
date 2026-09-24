@@ -21,7 +21,16 @@ const listStudents = async (skip: number, take: number) => {
     const [data, total] = await prisma.$transaction([
         prisma.student.findMany({ where, skip, take, orderBy }),
         prisma.student.count({ where }),
-    ]);
+    ],
+        {
+            // Cloud Run scales to zero and Neon suspends idle computes, so the
+            // first request after a quiet period waits on both waking up.
+            // Prisma's 2s default maxWait is well short of that, which made
+            // cold visitors hit "Unable to start a transaction in the given time".
+            maxWait: 15_000,
+            timeout: 20_000,
+        },
+    );
     return { data, total };
 };
 

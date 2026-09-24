@@ -1,5 +1,8 @@
 # Ilm (علم — "knowledge")
 
+**Live:** [edustack-auth-service.vercel.app](https://edustack-auth-service.vercel.app) — sign in as `admin` (password on request).
+First load is slow: Cloud Run scales to zero and Neon suspends idle computes, so both cold-start.
+
 A multi-role school management platform built as three Node/TypeScript microservices behind a React admin SPA. Roles — admin, teacher, student, parent — drive what each user can see and do.
 
 This is a learning project, and the interesting part is the decisions rather than the CRUD. Each one below is written with its tradeoff, because a choice you can't argue against isn't a choice.
@@ -15,7 +18,8 @@ This is a learning project, and the interesting part is the decisions rather tha
 | `admin` (React SPA) | Working — user and student management screens. |
 | `notification-service` | **Scaffold only** — health endpoint. Event-driven design not yet built. |
 | `web` (Next.js) | Reference implementation of the BFF proxy pattern. Not actively developed. |
-| Deployment | **Not deployed yet.** Docker + CI is the next milestone. |
+| Deployment | **Live.** Both services on Cloud Run, SPA on Vercel, databases on Neon. |
+| CI/CD | GitHub Actions — typecheck, tests and image builds on every push; deploys to Cloud Run on green. |
 
 ---
 
@@ -35,14 +39,14 @@ This is a learning project, and the interesting part is the decisions rather tha
 
 ```mermaid
 graph TB
-    Admin["admin SPA<br/>React + Vite :5174"]
+    Admin["admin SPA<br/>React + Vite<br/><i>Vercel</i>"]
 
-    Auth["auth-service :4001<br/>identity, roles, JWT"]
-    Academic["academic-service :4002<br/>students"]
-    Notify["notification-service :4003<br/>(scaffold)"]
+    Auth["auth-service<br/>identity, roles, JWT<br/><i>Cloud Run</i>"]
+    Academic["academic-service<br/>students<br/><i>Cloud Run</i>"]
+    Notify["notification-service<br/>(scaffold)"]
 
-    AuthDB[("Postgres<br/>auth")]
-    AcadDB[("Postgres<br/>academic")]
+    AuthDB[("Postgres<br/>auth<br/><i>Neon</i>")]
+    AcadDB[("Postgres<br/>academic<br/><i>Neon</i>")]
 
     Admin -->|"login → access token"| Auth
     Admin -->|"Bearer token"| Academic
@@ -185,6 +189,41 @@ Countries are stored as ISO 3166-1 alpha-2 codes (`QA`), never display names —
 
 ---
 
+### Deploying without stored credentials
+
+GitHub Actions authenticates to Google Cloud with **Workload Identity Federation**, not a service-account key.
+
+Each run, GitHub mints a short-lived OIDC token describing the workflow. GCP validates it against `token.actions.githubusercontent.com`, checks an attribute condition — `assertion.repository == 'malikumar1695/edustack'` — and only then allows impersonation of the deploy service account, issuing a credential valid for about an hour.
+
+The alternative is a service-account JSON key in GitHub secrets: a long-lived credential that stays valid until someone notices it leaked. Here there is no key to leak, rotate, or revoke. The four GitHub values this needs live in *Variables*, not *Secrets*, because none of them are sensitive — the provider path is useless without an OIDC token from this specific repository.
+
+**The attribute condition is the security boundary.** Without it, any repository on GitHub could complete the same exchange.
+
+### Two identities, deliberately separated
+
+- **`github-deployer`** — what CI acts as. Can push images and deploy Cloud Run services. **Cannot read secrets.**
+- **The runtime service account** — what containers run as. Can read its own secrets. **Cannot deploy.**
+
+So a compromised GitHub account could ship bad code, but could not exfiltrate the JWT signing key or the database credentials. Splitting the two costs nothing and bounds the blast radius of the likelier compromise.
+
+### Secrets in Secret Manager, not environment variables
+
+Connection strings and both halves of the RS256 keypair live in Secret Manager and are mounted at container start.
+
+Plain env vars are visible to anyone with Cloud Run viewer access. Secret Manager adds encryption at rest, versioning (rotate a key by adding a version, no redeploy), separate IAM, and an audit trail of every access.
+
+Mounting from files also preserves real newlines, so the PEMs need none of the escaped-newline handling that inline env vars force.
+
+**Tradeoff:** `:latest` resolves when an instance *starts*, so a rotated secret only reaches running containers on the next revision.
+
+### Serverless tradeoffs made visible
+
+`--min-instances=0` keeps the project inside the free tier and means the service costs nothing while idle — at the price of a cold start. Neon suspends idle computes for the same reason.
+
+Together they produce a real failure this code had to handle: the first request after a quiet period waits on **both** waking up, which exceeded Prisma's 2-second default `maxWait` and returned a 500. Both paginated queries now pass explicit `maxWait`/`timeout` values sized for serverless rather than for a local database.
+
+`--max-instances=2` caps the blast radius of a bot finding the URL — without it, scaling is unbounded and so is the bill.
+
 ## Distributed transactions
 
 Creating a login for a student means two writes in two databases:
@@ -214,6 +253,8 @@ Deliberate, not oversights:
 - **No resilience patterns.** No circuit breakers or retries, because there are currently no synchronous service-to-service calls to protect. They'd be added alongside the first one.
 - **`notification-service` is a scaffold.** Until it exists, every interaction is synchronous request/response — the weakest form of decoupling.
 - **Integration tests are unreliable** against the hosted database and are excluded from the default run.
+- **Cold starts are user-visible.** `min-instances=0` keeps hosting free, so the first request after an idle period takes several seconds. Setting it to 1 removes the delay and leaves the free tier.
+- **Migrations are applied by hand**, not by the pipeline. Deliberate: concurrent deploys racing on schema changes is a worse failure than a manual step.
 
 ---
 
@@ -283,7 +324,7 @@ Errors are uniform across both services:
 
 ## Next
 
-1. Docker + CI, deployed behind a live URL
-2. Event-driven `notification-service` — a transactional outbox so a committed grade can't lose its notification
-3. JWKS endpoint, so signing keys rotate without redeploying every consumer
+1. Event-driven `notification-service` — a transactional outbox so a committed grade can't lose its notification
+2. JWKS endpoint, so signing keys rotate without redeploying every consumer
+3. Integration tests against a Postgres service container in CI, replacing the hosted database they currently flake on
 4. OpenAPI specs, with the admin client generated from them

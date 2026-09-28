@@ -2,12 +2,15 @@ import dayjs from "dayjs";
 import { describe, expect, it, vi } from "vitest";
 import { AdmissionNoTakenError, StudentNotFoundError, UnableToDetermineCountryError } from "../errors/AppError";
 import * as studentRepo from "../repositories/student.repository";
+import { relayOutboxInBackground } from "./outbox.service";
 import * as studentService from "./student.service";
 import { Gender, Prisma, Student } from "../../prisma/generated";
 
 
 vi.mock("../lib/prisma", () => ({ prisma: {} }));
 vi.mock("../repositories/student.repository");
+// createStudent fires a background relay. Stub it so the tests don't reach SNS.
+vi.mock("./outbox.service", () => ({ relayOutboxInBackground: vi.fn() }));
 
 
 const prismaError = (code: string) =>
@@ -28,6 +31,26 @@ const actor = {
     username: "admin"
 };
 
+const mockedStudent = {
+    id: "s1",
+    admissionNo: "STU-000002",
+    firstName: "Saqib",
+    lastName: "Mehmood",
+    dateOfBirth: new Date("2019-05-15T00:00:00.000Z"),
+    gender: Gender.MALE,
+    guardianName: "Ali",
+    guardianPhone: "+923325365478",
+    phoneCountry: "PK",
+    countryOfResidence: "PK",
+    userId: null,
+    loginUsername: null,
+    createdByUserId: actor.sub,
+    createdByUsername: actor.username,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    isDeleted: false,
+} satisfies Student;
+
 describe("create student", () => {
 
     it("should throw UnableToDetermineCountryError when creating a student with invalid guardian phone", async () => {
@@ -44,7 +67,7 @@ describe("create student", () => {
         await expect(studentService.createStudent(InValidStudentData, actor)).rejects.toThrowError(UnableToDetermineCountryError);
 
         expect(studentRepo.generateAdmissionNo).not.toHaveBeenCalled();
-        expect(studentRepo.createStudent).not.toHaveBeenCalled();
+        expect(studentRepo.createStudentWithEvent).not.toHaveBeenCalled();
     });
 
 
@@ -52,13 +75,13 @@ describe("create student", () => {
         vi.resetAllMocks();
 
         vi.mocked(studentRepo.generateAdmissionNo).mockResolvedValue("STU-000001");
-        vi.mocked(studentRepo.createStudent).mockRejectedValue(
+        vi.mocked(studentRepo.createStudentWithEvent).mockRejectedValue(
             prismaError("P2002")
         );
 
         await expect(studentService.createStudent(validStudentData, actor)).rejects.toThrowError(AdmissionNoTakenError);
         expect(studentRepo.generateAdmissionNo).toHaveBeenCalled();
-        expect(studentRepo.createStudent).toHaveBeenCalledWith(
+        expect(studentRepo.createStudentWithEvent).toHaveBeenCalledWith(
             expect.objectContaining({
                 admissionNo: "STU-000001",
                 firstName: validStudentData.firstName,
@@ -72,40 +95,21 @@ describe("create student", () => {
                 createdByUserId: actor.sub,
                 createdByUsername: actor.username,
             }),
+            expect.any(Function),
         );
     });
 
     it("should create a student successfully when given valid data", async () => {
         vi.resetAllMocks();
 
-        const mockedResponse = {
-            id: "s1",
-            admissionNo: "STU-000002",
-            firstName: "Saqib",
-            lastName: "Mehmood",
-            dateOfBirth: new Date("2019-05-15T00:00:00.000Z"),
-            gender: Gender.MALE,
-            guardianName: "Ali",
-            guardianPhone: "+923325365478",
-            phoneCountry: "PK",
-            countryOfResidence: "PK",
-            userId: null,
-            loginUsername: null,
-            createdByUserId: actor.sub,
-            createdByUsername: actor.username,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            isDeleted: false,
-        } satisfies Student;
-
         vi.mocked(studentRepo.generateAdmissionNo).mockResolvedValue("STU-000002");
-        vi.mocked(studentRepo.createStudent).mockResolvedValue(mockedResponse);
+        vi.mocked(studentRepo.createStudentWithEvent).mockResolvedValue(mockedStudent);
 
         const result = await studentService.createStudent(validStudentData, actor);
-        expect(result).toEqual(mockedResponse);
+        expect(result).toEqual(mockedStudent);
 
         expect(studentRepo.generateAdmissionNo).toHaveBeenCalled();
-        expect(studentRepo.createStudent).toHaveBeenCalledWith(
+        expect(studentRepo.createStudentWithEvent).toHaveBeenCalledWith(
             expect.objectContaining({
                 admissionNo: "STU-000002",
                 firstName: validStudentData.firstName,
@@ -118,8 +122,43 @@ describe("create student", () => {
                 phoneCountry: "PK",
                 createdByUserId: actor.sub,
                 createdByUsername: actor.username,
-            })
+            }),
+            expect.any(Function),
         );
+    });
+
+    it("should describe the committed student in the outbox event", async () => {
+        vi.resetAllMocks();
+
+        vi.mocked(studentRepo.generateAdmissionNo).mockResolvedValue("STU-000002");
+        vi.mocked(studentRepo.createStudentWithEvent).mockResolvedValue(mockedStudent);
+
+        await studentService.createStudent(validStudentData, actor);
+
+        // The repository calls this inside the transaction with the row it just
+        // wrote, so the event always carries the real id rather than a guess.
+        const [, buildEvent] = vi.mocked(studentRepo.createStudentWithEvent).mock.calls[0];
+
+        expect(buildEvent(mockedStudent)).toEqual({
+            type: "student.created",
+            payload: {
+                studentId: mockedStudent.id,
+                admissionNo: mockedStudent.admissionNo,
+                firstName: mockedStudent.firstName,
+                lastName: mockedStudent.lastName,
+            },
+        });
+    });
+
+    it("should nudge the outbox relay after a successful create", async () => {
+        vi.resetAllMocks();
+
+        vi.mocked(studentRepo.generateAdmissionNo).mockResolvedValue("STU-000002");
+        vi.mocked(studentRepo.createStudentWithEvent).mockResolvedValue(mockedStudent);
+
+        await studentService.createStudent(validStudentData, actor);
+
+        expect(relayOutboxInBackground).toHaveBeenCalledOnce();
     });
 });
 

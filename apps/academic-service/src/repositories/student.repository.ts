@@ -1,4 +1,4 @@
-import { Gender, Prisma } from "../../prisma/generated";
+import { Gender, Prisma, Student } from "../../prisma/generated";
 import { prisma } from "../lib/prisma";
 
 
@@ -13,6 +13,9 @@ type StudentWriteData = {
     countryOfResidence: string;
     userId?: string;
 };
+
+type OutboxEventInput = { type: string; payload: Prisma.InputJsonValue };
+
 
 const listStudents = async (skip: number, take: number) => {
     const where: Prisma.StudentWhereInput = { isDeleted: false };
@@ -49,14 +52,24 @@ const generateAdmissionNo = async (): Promise<string> => {
     // → STU-000001, STU-000002, ...
     return admissionNo;
 };
-const createStudent = async (data: StudentWriteData & {
+const createStudentWithEvent = async (data: StudentWriteData & {
     admissionNo: string;
     createdByUserId: string;
     createdByUsername: string;
-},
+}, buildEvent: (student: Student) => OutboxEventInput
 ) => {
-    const student = await prisma.student.create({ data });
-    return student;
+ // The entire fix: both rows commit or neither does, so the event can no
+    // longer be lost after the student is already persisted.
+    return await prisma.$transaction(
+        async (tx) => {
+            const student = await tx.student.create({ data });
+            await tx.outboxEvent.create({ data: buildEvent(student) });
+            return student;
+        },
+        // Same cold-start allowance as listStudents — Cloud Run scales to zero
+        // and Neon suspends idle computes.
+        { maxWait: 15_000, timeout: 20_000 },
+    );
 };
 
 const updateStudent = async (id: string, data: StudentWriteData) => {
@@ -90,5 +103,5 @@ const unlinkUser = async (id: string) => {
     });
 };
 
-export { listStudents, getStudentById, createStudent, generateAdmissionNo, linkUserToStudent, updateStudent, softDeleteStudent, linkedUserIds, unlinkUser };
+export { listStudents, getStudentById, createStudentWithEvent, generateAdmissionNo, linkUserToStudent, updateStudent, softDeleteStudent, linkedUserIds, unlinkUser };
 

@@ -1,12 +1,10 @@
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { Prisma } from "../../prisma/generated";
-import { logger } from "@ilm/http-kit";
 import { CreateStudentDto } from "../dtos/student/CreateStudentDto";
 import { UpdateStudentDto } from "../dtos/student/UpdateStudentDto";
 import { AdmissionNoTakenError, StudentNotFoundError, UnableToDetermineCountryError, UserAlreadyLinkedError } from "../errors/AppError";
 import * as studentRepo from "../repositories/student.repository";
-import { publishStudentCreated } from "../lib/events";
-import { randomUUID } from "crypto";
+import { relayOutboxInBackground } from "./outbox.service";
 
 type Actor = { sub: string, username: string };
 
@@ -26,39 +24,38 @@ const createStudent = async (dto: CreateStudentDto, actor: Actor) => {
     const phoneCountry = phoneCountryOf(dto.guardianPhone);
     const admissionNo = await studentRepo.generateAdmissionNo();
 
-    let student: Awaited<ReturnType<typeof studentRepo.createStudent>>;
+    let student: Awaited<ReturnType<typeof studentRepo.createStudentWithEvent>>;
 
     try {
-        student = await studentRepo.createStudent({
-            ...dto,
-            admissionNo,
-            dateOfBirth: new Date(dto.dateOfBirth),
-            phoneCountry,
-            createdByUserId: actor.sub,
-            createdByUsername: actor.username,
-        });
+        student = await studentRepo.createStudentWithEvent(
+            {
+                ...dto,
+                admissionNo,
+                dateOfBirth: new Date(dto.dateOfBirth),
+                phoneCountry,
+                createdByUserId: actor.sub,
+                createdByUsername: actor.username,
+            },
+            (created) => ({
+                type: "student.created",
+                payload: {
+                    studentId: created.id,
+                    admissionNo: created.admissionNo,
+                    firstName: created.firstName,
+                    lastName: created.lastName,
+                },
+            }),
+        );
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
             throw new AdmissionNoTakenError();
         }
         throw error;
     }
-    
-    try {
-        await publishStudentCreated({
-            eventId: randomUUID(),
-            type: "student.created",
-            occurredAt: new Date().toISOString(),
-            data: {
-                studentId: student.id,
-                admissionNo: student.admissionNo,
-                firstName: student.firstName,
-                lastName: student.lastName,
-            },
-        });
-    } catch (error) {
-        logger.error({ err: error, studentId: student.id }, "failed to publish student.created");
-    }
+
+    // Both publishes the event just committed and sweeps any earlier ones that
+    // previously failed.
+    relayOutboxInBackground();
 
     return student;
 };
@@ -115,5 +112,6 @@ const unlinkUser = async (id: string) => {
 };
 
 export {
-    createStudent, deleteStudent, getStudentById, listStudents, updateStudent, linkUserToStudent, linkedUserIds, unlinkUser
+    createStudent, deleteStudent, getStudentById, linkedUserIds, linkUserToStudent, listStudents, unlinkUser, updateStudent
 };
+

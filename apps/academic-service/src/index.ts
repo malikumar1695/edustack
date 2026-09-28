@@ -5,6 +5,7 @@ import { errorHandler, logger, requestLogger, securityHeaders, globalRateLimiter
 import cors from "cors";
 import express from "express";
 import { studentRouter } from "./controllers/student.controller";
+import { startOutboxRelay } from "./services/outbox.service";
 
 const app = express();
 const port = process.env.PORT ?? 4002;
@@ -35,4 +36,5 @@ app.use(errorHandler);
 app.listen(port, () => {
   console.log(`academic-service listening on http://localhost:${port}`);
   logger.info({ port }, `academic-service listening`);
+  startOutboxRelay();
 });

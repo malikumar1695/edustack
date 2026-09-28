@@ -1,8 +1,4 @@
 import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
-import { logger } from "@ilm/http-kit";
-
-
-const topicArn = process.env.SNS_STUDENT_CREATED_ARN;
 
 const snsClient = new SNSClient({
     region: process.env.AWS_REGION,
@@ -12,26 +8,25 @@ const snsClient = new SNSClient({
     }
 });
 
-export type StudentCreatedEvent = {
-    eventId: string;
-    type: "student.created";
-    occurredAt: string;
-    data: {
-        studentId: string;
-        admissionNo: string;
-        firstName: string;
-        lastName: string;
-    }
+// One topic per event type. A new event type means one row here and nothing
+// else — publishers never learn who subscribes.
+const topicArnByType: Record<string, string | undefined> = {
+    "student.created": process.env.SNS_STUDENT_CREATED_ARN,
 };
 
-export const publishStudentCreated = async (event: StudentCreatedEvent): Promise<void> => {
-    if (!topicArn) {
-        logger.warn("SNS_STUDENT_CREATED_ARN is not defined");
-        return;
-    }
 
-    await snsClient.send(new PublishCommand({
-        TopicArn: topicArn,
-        Message: JSON.stringify(event)
-    }));
+export class UnroutableEventError extends Error {
+    constructor(type: string) {
+        super(`No SNS topic configured for event type "${type}"`);
+        this.name = "UnroutableEventError";
+    }
+}
+
+export const publishEvent = async (type: string, message: unknown): Promise<void> => {
+    const topicArn = topicArnByType[type];
+    // Throws rather than warn-and-return: a silent no-op would let the relay
+    // mark the row published when nothing was ever sent.
+    if (!topicArn) throw new UnroutableEventError(type);
+
+    await snsClient.send(new PublishCommand({ TopicArn: topicArn, Message: JSON.stringify(message) }));
 };

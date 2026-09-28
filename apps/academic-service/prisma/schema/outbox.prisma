@@ -1,0 +1,12 @@
+model OutboxEvent {
+    /// Doubles as the published eventId, so a consumer receiving this row
+    /// twice can recognise the duplicate and skip it.
+    id          String    @id @default(uuid())
+    type        String
+    payload     Json
+    occurredAt  DateTime  @default(now())
+    publishedAt DateTime?
+
+    // The relay only ever reads unpublished rows, oldest first.
+    @@index([publishedAt, occurredAt])
+}

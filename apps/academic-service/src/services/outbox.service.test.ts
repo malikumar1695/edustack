@@ -41,7 +41,7 @@ describe("outbox.service", () => {
         vi.mocked(outboxRepo.findUnpublished).mockResolvedValue([makeEvent()]);
         vi.mocked(publishEvent).mockRejectedValue(new Error("Failed to publish"));
 
-        await expect(relayOutbox()).resolves.toBeDefined();
+        await expect(relayOutbox()).resolves.toBeUndefined();
         expect(outboxRepo.markPublished).not.toHaveBeenCalled();
     });
 

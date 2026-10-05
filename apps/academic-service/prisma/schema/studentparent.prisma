@@ -1,0 +1,18 @@
+/// Join table rather than a parentId column: a student has two parents, a
+/// parent has several children. Unlike userId these ARE real relations —
+/// both tables live in the academic database.
+model StudentParent {
+    studentId    String
+    parentId     String
+    relationship Relationship
+
+    student Student @relation(fields: [studentId], references: [id])
+    parent  Parent  @relation(fields: [parentId], references: [id])
+
+    createdAt DateTime @default(now())
+
+    // Composite key: one link per pair, enforced by the database rather than
+    // by remembering to check first.
+    @@id([studentId, parentId])
+    @@index([parentId])
+}

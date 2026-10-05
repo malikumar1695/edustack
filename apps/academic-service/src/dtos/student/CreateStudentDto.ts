@@ -3,7 +3,7 @@ import {
     IsDateString, IsEnum, IsISO31661Alpha2, IsOptional, IsPhoneNumber, IsString, Length,
 } from "class-validator";
 import { Gender } from "../../../prisma/generated";
-import { toE164 } from "./transforms";
+import { toE164 } from "../../lib/transforms";
 
 export class CreateStudentDto {
     @IsString()

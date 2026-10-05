@@ -1,35 +1,45 @@
 import { ModalForm, ProFormSelect } from "@ant-design/pro-components";
 import { Button, Col, Form, message, Row } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import type { Role, StudentListItem, UserListItem } from "../../../lib/types";
-import { academicApi, authApi } from "../../../services/api";
-import { getApiErrorMessage } from "../../../services/errors";
-import UserFormFields from "../../account/users/components/UserFormFields";
-import type { RoleName } from "../../../lib/constants";
+import type { RoleName } from "../lib/constants";
+import type { LinkableRecord, Role, UserListItem } from "../lib/types";
+import { academicApi, authApi } from "../services/api";
+import { getApiErrorMessage } from "../services/errors";
+import UserFormFields from "../pages/account/users/components/UserFormFields";
 
-type LinkStudentUserFormProps = {
-    student: StudentListItem;
+type LinkUserFormProps = {
+    /** The record being linked — only its id and current userId matter here. */
+    record: LinkableRecord;
+    /** academic-service collection the record belongs to. */
+    resource: "students" | "parents";
+    /** auth-service role the linked account must hold. */
+    roleName: RoleName;
+    /** Singular noun used in the dialog copy, e.g. "Student". */
+    noun: string;
     open: boolean;
     onClose: () => void;
     reload: () => void;
 };
 
-type LinkStudentFormState = {
+type LinkUserFormState = {
     userId?: string;
     username?: string;
     password?: string;
 };
 
-const STUDENT_ROLE: RoleName = "student";
-
-const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUserFormProps) => {
+/**
+ * Students and parents both link to a User in auth-service through the same
+ * flow, so this is shared rather than duplicated per page. Everything that
+ * differs is a prop: the collection, the role, and the noun.
+ */
+const LinkUserForm = ({ record, resource, roleName, noun, open, onClose, reload }: LinkUserFormProps) => {
     const [messageApi, messageApiContextHolder] = message.useMessage();
     const [loading, setLoading] = useState(false);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
 
     const [users, setUsers] = useState<UserListItem[]>([]);
     const [linkedUserIds, setLinkedUserIds] = useState<string[]>([]);
-    const [studentRoleId, setStudentRoleId] = useState<string>();
+    const [roleId, setRoleId] = useState<string>();
 
     useEffect(() => {
         if (!open) return;
@@ -40,44 +50,44 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
                 // "Which accounts are free?" spans both, so it can't be one query.
                 const [userRes, linkedRes, roleRes] = await Promise.all([
                     authApi.get<{ data: UserListItem[] }>("/users", {
-                        params: { role: STUDENT_ROLE, pageSize: 100 },
+                        params: { role: roleName, pageSize: 100 },
                     }),
-                    academicApi.get<string[]>("/students/linked-user-ids"),
+                    academicApi.get<string[]>(`/${resource}/linked-user-ids`),
                     authApi.get<Role[]>("/roles"),
                 ]);
 
                 setUsers(userRes.data.data);
                 setLinkedUserIds(linkedRes.data);
-                setStudentRoleId(roleRes.data.find((role) => role.name === STUDENT_ROLE)?.id);
+                setRoleId(roleRes.data.find((role) => role.name === roleName)?.id);
             } catch (error) {
                 messageApi.error(getApiErrorMessage(error));
             }
         };
 
         load();
-    }, [open, messageApi]);
+    }, [open, resource, roleName, messageApi]);
 
     const userOptions = useMemo(() => {
-        // Exclude accounts taken by OTHER students — this student's own stays in
-        // the list so the Select can render it as the current selection.
-        const takenByOthers = linkedUserIds.filter((id) => id !== student.userId);
+        // Exclude accounts taken by OTHER records — this one's own stays in the
+        // list so the Select can render it as the current selection.
+        const takenByOthers = linkedUserIds.filter((id) => id !== record.userId);
 
         return users
             .filter((user) => !takenByOthers.includes(user.id))
             .map((user) => ({ label: user.username, value: user.id }));
-    }, [users, linkedUserIds, student.userId]);
+    }, [users, linkedUserIds, record.userId]);
 
-    const submit = async (values: LinkStudentFormState) => {
+    const submit = async (values: LinkUserFormState) => {
         let userId = values.userId;
         let loginUsername = users.find((user) => user.id === userId)?.username;
 
         if (!userId) {
-            if (!studentRoleId) throw new Error("Student role is unavailable — try reopening the dialog.");
+            if (!roleId) throw new Error(`The ${roleName} role is unavailable — try reopening the dialog.`);
 
             const { data: created } = await authApi.post<{ id: string; username: string }>("/users", {
                 username: values.username,
                 password: values.password,
-                roleIds: [studentRoleId],
+                roleIds: [roleId],
                 isActive: true,
             });
 
@@ -87,7 +97,7 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
             loginUsername = created.username;
         }
 
-        await academicApi.put(`/students/${student.id}/user`, { userId, loginUsername });
+        await academicApi.put(`/${resource}/${record.id}/user`, { userId, loginUsername });
 
         messageApi.success("Linked successfully");
         reload?.();
@@ -98,7 +108,7 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
         <>
             {messageApiContextHolder}
             <ModalForm
-                title={student.userId ? "Change Student Login" : "Link Student Login"}
+                title={record.userId ? `Change ${noun} Login` : `Link ${noun} Login`}
                 open={open}
                 onOpenChange={(visible) => {
                     if (!visible) {
@@ -107,12 +117,12 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
                     }
                 }}
                 width="400px"
-                initialValues={{ userId: student.userId }}
+                initialValues={{ userId: record.userId }}
                 modalProps={{ destroyOnClose: true, okButtonProps: { loading } }}
                 onFinish={async (values) => {
                     setLoading(true);
                     try {
-                        return await submit(values as LinkStudentFormState);
+                        return await submit(values as LinkUserFormState);
                     } catch (error) {
                         messageApi.error(getApiErrorMessage(error));
                         return false;
@@ -148,4 +158,4 @@ const LinkStudentUserForm = ({ student, open, onClose, reload }: LinkStudentUser
     );
 };
 
-export default LinkStudentUserForm;
+export default LinkUserForm;

@@ -7,8 +7,17 @@ export class StudentNotFoundError extends BaseAppError {
     constructor() { super("Student not found", 404, "STUDENT_NOT_FOUND"); }
 }
 
+export class ParentNotFoundError extends BaseAppError {
+    constructor() { super("Parent not found", 404, "PARENT_NOT_FOUND"); }
+}
+
+
 export class AdmissionNoTakenError extends BaseAppError {
     constructor() { super("Admission number is already in use", 409, "ADMISSION_NO_TAKEN"); }
+}
+
+export class EmailTakenError extends BaseAppError {
+    constructor() { super("Email is already in use", 409, "EMAIL_TAKEN"); }
 }
 
 export class UnableToDetermineCountryError extends BaseAppError {

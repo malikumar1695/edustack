@@ -1,8 +1,8 @@
 import { requireRole } from "@ilm/auth-kit";
 import { validateBody } from "@ilm/http-kit";
 import { Router } from "express";
+import { LinkUserDto } from "../dtos/LinkUserDto";
 import { CreateStudentDto } from "../dtos/student/CreateStudentDto";
-import { LinkUserDto } from "../dtos/student/LinkUserDto";
 import { UpdateStudentDto } from "../dtos/student/UpdateStudentDto";
 import * as studentService from "../services/student.service";
 

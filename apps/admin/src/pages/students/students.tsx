@@ -7,7 +7,7 @@ import type { StudentListItem } from "../../lib/types";
 import { academicApi } from "../../services/api";
 import { getApiErrorMessage } from "../../services/errors";
 import StudentForm from "./components/studentForm";
-import LinkStudentUserForm from "./components/LinkStudentUserForm";
+import LinkUserForm from "../../components/LinkUserForm";
 
 const Students: React.FC = () => {
     const actionRef = useRef<ActionType | null>(null);
@@ -159,9 +159,12 @@ const Students: React.FC = () => {
                 />
             )}
             {linkingStudentUser && (
-                <LinkStudentUserForm
+                <LinkUserForm
                     key={linkingStudentUser.id}
-                    student={linkingStudentUser}
+                    record={linkingStudentUser}
+                    resource="students"
+                    roleName="student"
+                    noun="Student"
                     open
                     onClose={() => setLinkingStudentUser(null)}
                     reload={reloadTable}

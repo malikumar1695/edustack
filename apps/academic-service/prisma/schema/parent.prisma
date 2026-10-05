@@ -1,0 +1,30 @@
+model Parent {
+    id        String  @id @default(uuid())
+    firstName String
+    lastName  String
+    email     String? @unique
+    phone     String
+    /// ISO 3166-1 alpha-2 of the phone's country, derived from phone on write.
+    phoneCountry       String @db.Char(2)
+    countryOfResidence String @db.Char(2)
+
+    gender        Gender
+    
+    // Reference to a User in auth-service. Deliberately NOT a relation:
+    // separate databases mean no foreign key and no cross-service join.
+    userId        String? @unique
+    loginUsername String? @unique
+
+    children StudentParent[]
+
+    createdByUserId   String
+    createdByUsername String
+
+    isDeleted Boolean  @default(false)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([isDeleted])
+}
+
+

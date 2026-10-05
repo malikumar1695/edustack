@@ -11,13 +11,11 @@ model Student {
     /// Derived from guardianPhone on write — never taken from the client.
     phoneCountry  String   @db.Char(2)
 
-    /// Where the student actually lives. Independent of the phone —
-    /// expat families commonly have a foreign guardian number.
     countryOfResidence String @db.Char(2)
 
     // Reference to a User in auth-service. Deliberately NOT a relation:
     // separate databases mean no foreign key and no cross-service join.
-    userId String? @unique
+    userId        String? @unique
     loginUsername String? @unique
 
     // Denormalised at write time from the JWT — avoids a synchronous call to
@@ -29,5 +27,6 @@ model Student {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
+    parents StudentParent[]
     @@index([isDeleted])
 }

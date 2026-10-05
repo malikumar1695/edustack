@@ -30,6 +30,7 @@ import Register from "../pages/user/register/register";
 import RegisterResult from "../pages/user/register-result/register-result";
 import Users from "../pages/account/users/users";
 import Students from "../pages/students/students";
+import Parents from "../pages/parents/Parents";
 
 // Every path below mirrors ant-design-pro-master/config/routes.ts. Routes
 // without a real page yet render <NotYetPorted /> so navigation and the
@@ -50,6 +51,7 @@ export default function AppRoutes() {
         <Route path="/admin/sub-page" element={<Admin />} />
         <Route path="/account/users" element={<Users />} />
         <Route path="/students" element={<Students />} />
+        <Route path="/parents" element={<Parents />} />
         <Route path="/admin" element={<Navigate to="/admin/sub-page" replace />} />
 
         <Route path="/dashboard/analysis" element={<DashboardAnalysis />} />

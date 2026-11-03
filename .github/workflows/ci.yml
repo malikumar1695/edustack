@@ -36,6 +36,7 @@ jobs:
         run: |
           npm exec --workspace @ilm/auth-service -- prisma generate
           npm exec --workspace @ilm/academic-service -- prisma generate
+          npm exec --workspace @ilm/classroom-service -- prisma generate
 
       # keys/*.pem are gitignored (correctly — never commit private keys), so
       # CI mints a throwaway pair. The RS256 tests sign and verify for real.
@@ -49,6 +50,7 @@ jobs:
         run: |
           npm run --workspace @ilm/auth-service typecheck
           npm run --workspace @ilm/academic-service typecheck
+          npm run --workspace @ilm/classroom-service typecheck
 
       # Unit tests only. The integration suite needs a real database and is
       # excluded until it runs reliably (see README known gaps).
@@ -61,11 +63,13 @@ jobs:
         run: |
           npm exec --workspace @ilm/auth-service -- vitest run src/
           npm exec --workspace @ilm/academic-service -- vitest run src/
+          npm exec --workspace @ilm/classroom-service -- vitest run src/
 
       - name: Build
         run: |
           npm run --workspace @ilm/auth-service build
           npm run --workspace @ilm/academic-service build
+          npm run --workspace @ilm/classroom-service build
 
   frontend:
     name: Admin SPA (build)
@@ -106,3 +110,6 @@ jobs:
 
       - name: Build academic-service image
         run: docker build -f apps/academic-service/Dockerfile -t ilm-academic .
+
+      - name: Build classroom-service image
+        run: docker build -f apps/classroom-service/Dockerfile -t ilm-classroom .

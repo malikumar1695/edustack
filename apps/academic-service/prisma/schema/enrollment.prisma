@@ -1,0 +1,16 @@
+/// A student's membership of a class. Both sides live in the academic
+/// database, so unlike teacherUserId these ARE real relations.
+model Enrollment {
+    classId   String
+    studentId String
+
+    class   Class   @relation(fields: [classId], references: [id])
+    student Student @relation(fields: [studentId], references: [id])
+
+    createdAt DateTime @default(now())
+
+    // Composite key: a student is enrolled in a class at most once, enforced
+    // by the database rather than by remembering to check first.
+    @@id([classId, studentId])
+    @@index([studentId])
+}

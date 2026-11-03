@@ -6,7 +6,8 @@
     "packages/*",
     "apps/auth-service",
     "apps/academic-service",
-    "apps/notification-service"
+    "apps/notification-service",
+    "apps/classroom-service"
   ],
   "scripts": {
     "build:packages": "npm run build --workspace @ilm/http-kit --workspace @ilm/auth-kit",

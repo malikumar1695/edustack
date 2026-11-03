@@ -1,0 +1,28 @@
+model Class {
+    id      String @id @default(uuid())
+    /// Display name, e.g. "Grade 5 — Mathematics". Not unique: two sections
+    /// of the same subject can legitimately share one.
+    name    String
+    subject String
+
+    // Reference to a User in auth-service holding the teacher role.
+    // Deliberately NOT a relation: separate databases mean no foreign key.
+    teacherUserId   String
+    // Denormalised at write time so the class list can show the teacher
+    // without a call to auth-service.
+    teacherUsername String
+
+    enrollments Enrollment[]
+
+    createdByUserId   String
+    createdByUsername String
+
+    isDeleted Boolean  @default(false)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // "Which classes does this teacher run?" is the question every join
+    // check in classroom-service will ask.
+    @@index([teacherUserId])
+    @@index([isDeleted])
+}

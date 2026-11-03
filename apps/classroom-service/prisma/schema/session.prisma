@@ -1,0 +1,55 @@
+enum SessionStatus {
+    LIVE
+    ENDED
+}
+
+enum MemberRole {
+    TEACHER
+    STUDENT
+}
+
+/// One live class. Its id doubles as the LiveKit room name, so a room is
+/// never reused across sessions and a transcript can't bleed into the next one.
+model ClassSession {
+    id String @id @default(uuid())
+
+    // Reference to a Class in academic-service. Deliberately NOT a relation:
+    // separate databases mean no foreign key.
+    classId   String
+    // Denormalised at start so listings never call academic-service.
+    className String
+
+    /// Equal to classId while LIVE, null once ENDED. Unique, so the database
+    /// itself guarantees at most one live session per class — two teachers
+    /// clicking Start at once can't open two rooms.
+    liveClassId String? @unique
+
+    status SessionStatus @default(LIVE)
+
+    startedByUserId   String
+    startedByUsername String
+    startedAt         DateTime  @default(now())
+    endedAt           DateTime?
+
+    members SessionMember[]
+
+    @@index([classId])
+    @@index([status])
+}
+
+/// Who may join, copied from the class roster when the session starts.
+/// Join checks read this table instead of calling academic-service, so a
+/// running class keeps working if academic-service is down. The cost: a
+/// student enrolled mid-session can join from the next session onwards.
+model SessionMember {
+    sessionId String
+    userId    String
+    username  String
+    role      MemberRole
+
+    session ClassSession @relation(fields: [sessionId], references: [id])
+
+    @@id([sessionId, userId])
+    // "Which live sessions can I join?" is asked by user.
+    @@index([userId])
+}

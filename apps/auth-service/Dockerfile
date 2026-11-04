@@ -21,6 +21,7 @@ COPY packages/auth-kit/package.json packages/auth-kit/
 COPY apps/auth-service/package.json apps/auth-service/
 COPY apps/academic-service/package.json apps/academic-service/
 COPY apps/notification-service/package.json apps/notification-service/
+COPY apps/classroom-service/package.json apps/classroom-service/
 
 RUN npm ci --include-workspace-root \
     --workspace @ilm/http-kit \
@@ -53,6 +54,7 @@ COPY packages/auth-kit/package.json packages/auth-kit/
 COPY apps/auth-service/package.json apps/auth-service/
 COPY apps/academic-service/package.json apps/academic-service/
 COPY apps/notification-service/package.json apps/notification-service/
+COPY apps/classroom-service/package.json apps/classroom-service/
 
 # --omit=dev drops typescript, vitest and the prisma CLI. The cache is cleaned
 # in the same RUN because layers are additive — a later delete wouldn't shrink it.

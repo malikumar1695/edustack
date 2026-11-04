@@ -10,8 +10,14 @@
     "apps/classroom-service"
   ],
   "scripts": {
+    "dev": "concurrently --names auth,academic,classroom,admin --prefix-colors blue,green,magenta,cyan \"npm run dev --workspace @ilm/auth-service\" \"npm run dev --workspace @ilm/academic-service\" \"npm run dev --workspace @ilm/classroom-service\" \"npm run dev --prefix apps/admin\"",
+    "dev:notification": "npm run dev --workspace @ilm/notification-service",
     "build:packages": "npm run build --workspace @ilm/http-kit --workspace @ilm/auth-kit",
+    "test": "concurrently --max-processes 1 --names auth,academic,classroom --prefix-colors blue,green,magenta \"npm exec --workspace @ilm/auth-service -- vitest run src/\" \"npm exec --workspace @ilm/academic-service -- vitest run src/\" \"npm exec --workspace @ilm/classroom-service -- vitest run src/\"",
     "test:auth": "npm test --workspace @ilm/auth-service"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   },
   "overrides": {
     "prisma": "^7.10.0",

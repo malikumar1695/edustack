@@ -4,6 +4,7 @@ import { authenticate } from "@ilm/auth-kit";
 import { errorHandler, logger, requestLogger, securityHeaders, globalRateLimiter } from "@ilm/http-kit";
 import cors from "cors";
 import express from "express";
+import { classRouter } from "./controllers/class.controller";
 import { parentRouter } from "./controllers/parent.controller";
 import { studentRouter } from "./controllers/student.controller";
 import { startOutboxRelay } from "./services/outbox.service";
@@ -33,6 +34,7 @@ app.get("/whoiam", authenticate, (req, res) => {
 
 app.use("/students", authenticate, studentRouter);
 app.use("/parents", authenticate, parentRouter);
+app.use("/classes", authenticate, classRouter);
 app.use(errorHandler);
 
 app.listen(port, () => {

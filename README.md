@@ -17,6 +17,7 @@ This is a learning project, and the interesting part is the decisions rather tha
 | `academic-service` | Working — student records, linking to login accounts. 4 unit tests. |
 | `admin` (React SPA) | Working — user and student management screens. |
 | `notification-service` | **Scaffold only** — health endpoint. Event-driven design not yet built. |
+| `classroom-service` | **In progress** — live video classes on LiveKit: start/join/end sessions with role-checked join tokens. Saved chat and transcripts are next. |
 | `web` (Next.js) | Reference implementation of the BFF proxy pattern. Not actively developed. |
 | Deployment | **Live.** Both services on Cloud Run, SPA on Vercel, databases on Neon. |
 | CI/CD | GitHub Actions — typecheck, tests and image builds on every push; deploys to Cloud Run on green. |
@@ -64,6 +65,7 @@ ilm/
 │   ├── auth-service/        :4001  identity, roles, tokens
 │   ├── academic-service/    :4002  student records
 │   ├── notification-service/:4003  scaffold
+│   ├── classroom-service/   :4004  live video classes (LiveKit)
 │   ├── admin/               :5174  React admin SPA
 │   ├── web/                 :3000  Next.js + BFF proxy (reference)
 │   └── ant-design-pro-master/      read-only template reference
@@ -156,6 +158,16 @@ Argon2 won the 2015 Password Hashing Competition and is OWASP's current recommen
 The alternative is calling `auth-service` on every roster read to resolve ids into names, which couples the read path to another service's availability. Copying the value at write time removes that dependency entirely.
 
 **Tradeoff:** the copy goes stale if a username changes. For an audit field that's arguably correct — it records who acted under the name they had at the time. If freshness mattered, a `user.updated` event would keep it current.
+
+### Live classes: roster snapshot at session start
+
+Video runs on LiveKit (open-source WebRTC SFU, hosted on LiveKit Cloud's free tier — Cloud Run can't carry media, it has no UDP). `classroom-service` never touches media; it decides who may join and signs short-lived LiveKit tokens with an API secret only it holds.
+
+When a session starts, `classroom-service` fetches the class from `academic-service` **once**, forwarding the caller's own token — so `academic-service` makes the access decision it already owns, and no service-to-service credential exists. The teacher and every linked student are copied into `SessionMember`. From then on, join checks read only that table: a running class survives `academic-service` going down.
+
+**Tradeoff:** a student enrolled mid-session can join from the next session, not this one.
+
+At most one live session per class is enforced by the database: `liveClassId` is unique, set to the class id while live and cleared on end. Two teachers pressing Start together get the same room, not two.
 
 ### Soft delete
 
@@ -269,24 +281,26 @@ npm run build:packages      # http-kit and auth-kit compile to dist/
 
 Each service needs a `.env` (see `.env.example` in each). `academic-service` needs `JWT_PUBLIC_KEY` — the public half of `auth-service`'s keypair, as an inline PEM with escaped newlines.
 
+First run only, apply the migrations:
+
 ```bash
-# auth-service
-cd apps/auth-service
-npx prisma migrate deploy && npx prisma db seed   # roles, permissions, an admin user
-npm run dev                                       # :4001
-
-# academic-service
-cd apps/academic-service
-npx prisma migrate deploy
-npm run dev                                       # :4002
-
-# admin SPA
-cd apps/admin && npm run dev                      # :5174
+cd apps/auth-service && npx prisma migrate deploy && npx prisma db seed   # roles, permissions, an admin user
+cd apps/academic-service && npx prisma migrate deploy
+cd apps/classroom-service && npx prisma migrate deploy
 ```
+
+Then, from the repo root, one command starts everything in one terminal, each line prefixed with its service. Ctrl+C stops them all.
+
+```bash
+npm run dev    # auth :4001, academic :4002, classroom :4004, admin SPA :5174
+```
+
+`notification-service` isn't included; run it with `npm run dev:notification` once it has a `.env`.
 
 Tests:
 ```bash
-npx vitest run src/    # from either service — unit tests only
+npm test               # from the repo root — unit tests for every service
+npx vitest run src/    # from one service — that service's unit tests only
 ```
 
 ---
@@ -313,8 +327,23 @@ npx vitest run src/    # from either service — unit tests only
 | `POST /students` · `PUT /students/:id` · `DELETE /students/:id` | manage records |
 | `PUT /students/:id/user` · `DELETE /students/:id/user` | link / unlink a login account (admin) |
 | `GET /students/linked-user-ids` | ids already linked, for client-side composition |
+| `GET /classes?current=&pageSize=` | paginated classes — every class for admin, only their own for a teacher |
+| `GET /classes/:id` | class with its enrolled students (admin, or the class's teacher) |
+| `POST /classes` · `PUT /classes/:id` · `DELETE /classes/:id` | manage classes (admin) |
+| `PUT /classes/:id/students` | replace the roster with exactly the given `studentIds` (admin, or the class's own teacher) |
+| `POST /classes/:id/students` | add only the given `studentIds` (admin, or the class's own teacher) |
+| `DELETE /classes/:id/students/:studentId` | remove one student (admin, or the class's own teacher) |
 
-Errors are uniform across both services:
+**classroom-service** — all routes require a valid token.
+
+| | |
+|---|---|
+| `POST /sessions` | start a live session for `classId` (admin, or the class's teacher) — returns the live one if it already exists |
+| `GET /sessions/live` | live sessions the caller may join (admins: all) |
+| `POST /sessions/:id/token` | a 10-minute LiveKit join token, for members and admins |
+| `POST /sessions/:id/end` | end the session and disconnect everyone (teacher, admin) |
+
+Errors are uniform across all services:
 
 ```json
 { "error": { "code": "USERNAME_TAKEN", "message": "Username is already taken", "requestId": "b6073fd3-…" } }

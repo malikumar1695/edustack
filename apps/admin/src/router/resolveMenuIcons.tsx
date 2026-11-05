@@ -1,6 +1,7 @@
 import {
   AppstoreOutlined,
   BarChartOutlined,
+  BookOutlined,
   BugOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -20,8 +21,10 @@ import {
   SettingOutlined,
   StopOutlined,
   TableOutlined,
+  TeamOutlined,
   UnorderedListOutlined,
   UserOutlined,
+  VideoCameraOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 import type { MenuRoute } from "./menuRoutes";
@@ -55,6 +58,9 @@ const ICONS: Record<string, React.ComponentType> = {
   user: UserOutlined,
   setting: SettingOutlined,
   robot: RobotOutlined,
+  team: TeamOutlined,
+  book: BookOutlined,
+  video: VideoCameraOutlined,
 };
 
 function resolveIcon(name?: string): React.ReactNode {

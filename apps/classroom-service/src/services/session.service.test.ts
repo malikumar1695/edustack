@@ -194,6 +194,7 @@ describe("join token", () => {
         const result = await sessionService.getJoinToken(summary.id, student);
 
         expect(result).toMatchObject({ token: "jwt", role: "STUDENT", serverUrl: "wss://test.livekit.cloud" });
+        expect(result.session.startedAt).toEqual(summary.startedAt);
         expect(createJoinToken).toHaveBeenCalledWith({
             roomName: summary.id, identity: student.sub, name: student.username, role: "STUDENT",
         });

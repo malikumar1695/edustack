@@ -87,7 +87,7 @@ export type JoinTokenResponse = {
     token: string;
     serverUrl: string;
     role: ParticipantRole;
-    session: { id: string; className: string };
+    session: { id: string; className: string; startedAt: string };
 };
 
 /** The subset of a record LinkUserForm needs — students and parents both fit. */

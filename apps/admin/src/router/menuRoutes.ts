@@ -113,6 +113,16 @@ export const menuRoutes: MenuRoute[] = [
     icon: "team"
   },
   {
+    path: "/classes",
+    name: "Classes",
+    icon: "book"
+  },
+  {
+    path: "/live-classes",
+    name: "Live Classes",
+    icon: "video"
+  },
+  {
     path: "/chatbot",
     name: "Chatbot",
     icon: "robot",

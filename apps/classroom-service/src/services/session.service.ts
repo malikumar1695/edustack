@@ -139,7 +139,7 @@ const getJoinToken = async (sessionId: string, actor: Actor) => {
         token,
         serverUrl: livekitUrl(),
         role,
-        session: { id: session.id, className: session.className },
+        session: { id: session.id, className: session.className, startedAt: session.startedAt },
     };
 };
 

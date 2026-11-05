@@ -3,7 +3,10 @@ enum SessionStatus {
     ENDED
 }
 
-enum MemberRole {
+/// What someone is in a session. ADMIN is for an admin who joins without
+/// being a member, so it appears on chat messages but never on SessionMember.
+enum ParticipantRole {
+    ADMIN
     TEACHER
     STUDENT
 }
@@ -31,7 +34,8 @@ model ClassSession {
     startedAt         DateTime  @default(now())
     endedAt           DateTime?
 
-    members SessionMember[]
+    members  SessionMember[]
+    messages ChatMessage[]
 
     @@index([classId])
     @@index([status])
@@ -40,12 +44,12 @@ model ClassSession {
 /// Who may join, copied from the class roster when the session starts.
 /// Join checks read this table instead of calling academic-service, so a
 /// running class keeps working if academic-service is down. The cost: a
-/// student enrolled mid-session can join from the next session onwards.
+/// student enrolled mid-session can't join until someone presses Start again.
 model SessionMember {
     sessionId String
     userId    String
     username  String
-    role      MemberRole
+    role      ParticipantRole
 
     session ClassSession @relation(fields: [sessionId], references: [id])
 

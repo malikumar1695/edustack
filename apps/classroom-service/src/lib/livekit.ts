@@ -1,6 +1,5 @@
-import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
-
-export type ParticipantRole = "ADMIN" | "TEACHER" | "STUDENT";
+import { AccessToken, DataPacket_Kind, RoomServiceClient } from "livekit-server-sdk";
+import { ParticipantRole } from "../../prisma/generated";
 
 const requireEnv = (name: string): string => {
     const value = process.env[name];
@@ -37,7 +36,9 @@ export const createJoinToken = async (params: {
         roomJoin: true,
         canPublish: true,
         canSubscribe: true,
-        canPublishData: true,
+        // Off: chat goes through this service, so a browser publishing straight
+        // into the room could post messages that were never saved.
+        canPublishData: false,
         // Mute or remove others. Teachers and admins, never students.
         roomAdmin: params.role !== "STUDENT",
     });
@@ -65,6 +66,12 @@ const getRoomService = () => {
 export const listActiveRooms = async (roomNames: string[]): Promise<Set<string>> => {
     const rooms = await getRoomService().listRooms(roomNames);
     return new Set(rooms.map((room) => room.name));
+};
+
+/** Delivers a saved chat message to everyone in the room, sender included. */
+export const broadcastChatMessage = async (roomName: string, message: unknown): Promise<void> => {
+    const payload = new TextEncoder().encode(JSON.stringify(message));
+    await getRoomService().sendData(roomName, payload, DataPacket_Kind.RELIABLE, { topic: "chat" });
 };
 
 /** Disconnects everyone still in the room. */

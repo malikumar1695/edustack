@@ -1,17 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MemberRole, Prisma } from "../../prisma/generated";
+import { ParticipantRole, Prisma } from "../../prisma/generated";
 import { ForbiddenError, SessionEndedError, SessionNotFoundError } from "../errors/AppError";
 import { getClassRoster } from "../lib/academic";
-import { closeRoom, createJoinToken, listActiveRooms } from "../lib/livekit";
+import { broadcastChatMessage, closeRoom, createJoinToken, listActiveRooms } from "../lib/livekit";
+import * as messageRepo from "../repositories/message.repository";
 import * as sessionRepo from "../repositories/session.repository";
 import * as sessionService from "./session.service";
 
 
 vi.mock("../lib/prisma", () => ({ prisma: {} }));
 vi.mock("../repositories/session.repository");
+vi.mock("../repositories/message.repository");
 vi.mock("../lib/academic");
 vi.mock("../lib/livekit", () => ({
     createJoinToken: vi.fn(),
+    broadcastChatMessage: vi.fn(),
     closeRoom: vi.fn(),
     listActiveRooms: vi.fn(),
     livekitUrl: () => "wss://test.livekit.cloud",
@@ -51,8 +54,8 @@ const storedSession = (status: "LIVE" | "ENDED" = "LIVE") => ({
     liveClassId: status === "LIVE" ? roster.id : null,
     startedByUserId: teacher.sub,
     members: [
-        { sessionId: summary.id, userId: teacher.sub, username: teacher.username, role: MemberRole.TEACHER },
-        { sessionId: summary.id, userId: student.sub, username: student.username, role: MemberRole.STUDENT },
+        { sessionId: summary.id, userId: teacher.sub, username: teacher.username, role: ParticipantRole.TEACHER },
+        { sessionId: summary.id, userId: student.sub, username: student.username, role: ParticipantRole.STUDENT },
     ],
 });
 
@@ -74,8 +77,8 @@ describe("start session", () => {
             className: roster.name,
             startedByUserId: teacher.sub,
             members: expect.arrayContaining([
-                { userId: teacher.sub, username: teacher.username, role: MemberRole.TEACHER },
-                { userId: student.sub, username: student.username, role: MemberRole.STUDENT },
+                { userId: teacher.sub, username: teacher.username, role: ParticipantRole.TEACHER },
+                { userId: student.sub, username: student.username, role: ParticipantRole.STUDENT },
             ]),
         }));
         expect(vi.mocked(sessionRepo.createSession).mock.calls[0][0].members).toHaveLength(2);
@@ -107,7 +110,7 @@ describe("start session", () => {
         await sessionService.startSession(roster.id, teacher, "Bearer t");
 
         expect(sessionRepo.addMembers).toHaveBeenCalledWith(summary.id, expect.arrayContaining([
-            { userId: "student-3", username: "hina", role: MemberRole.STUDENT },
+            { userId: "student-3", username: "hina", role: ParticipantRole.STUDENT },
         ]));
     });
 
@@ -218,6 +221,81 @@ describe("join token", () => {
         vi.mocked(sessionRepo.findById).mockResolvedValue(storedSession("ENDED"));
 
         await expect(sessionService.getJoinToken(summary.id, student)).rejects.toThrow(SessionEndedError);
+    });
+});
+
+describe("chat", () => {
+    const saved = {
+        id: "message-1",
+        sessionId: summary.id,
+        senderUserId: student.sub,
+        senderUsername: student.username,
+        senderRole: "STUDENT" as const,
+        body: "hello",
+        sentAt: new Date(),
+    };
+
+    it("should save a message before broadcasting it", async () => {
+        vi.mocked(sessionRepo.findById).mockResolvedValue(storedSession());
+        vi.mocked(messageRepo.createMessage).mockResolvedValue(saved);
+
+        await expect(sessionService.sendMessage(summary.id, "  hello  ", student)).resolves.toEqual(saved);
+
+        expect(messageRepo.createMessage).toHaveBeenCalledWith({
+            sessionId: summary.id,
+            senderUserId: student.sub,
+            senderUsername: student.username,
+            senderRole: "STUDENT",
+            body: "hello",
+        });
+        expect(broadcastChatMessage).toHaveBeenCalledWith(summary.id, saved);
+        expect(vi.mocked(messageRepo.createMessage).mock.invocationCallOrder[0])
+            .toBeLessThan(vi.mocked(broadcastChatMessage).mock.invocationCallOrder[0]);
+    });
+
+    it("should record an admin who isn't a member as ADMIN", async () => {
+        vi.mocked(sessionRepo.findById).mockResolvedValue(storedSession());
+        vi.mocked(messageRepo.createMessage).mockResolvedValue(saved);
+
+        await sessionService.sendMessage(summary.id, "hello", admin);
+
+        expect(messageRepo.createMessage).toHaveBeenCalledWith(expect.objectContaining({ senderRole: "ADMIN" }));
+    });
+
+    it("should still return the saved message when the broadcast fails", async () => {
+        vi.mocked(sessionRepo.findById).mockResolvedValue(storedSession());
+        vi.mocked(messageRepo.createMessage).mockResolvedValue(saved);
+        vi.mocked(broadcastChatMessage).mockRejectedValue(new Error("network"));
+
+        await expect(sessionService.sendMessage(summary.id, "hello", student)).resolves.toEqual(saved);
+    });
+
+    it("should not let someone outside the session write", async () => {
+        vi.mocked(sessionRepo.findById).mockResolvedValue(storedSession());
+
+        await expect(sessionService.sendMessage(summary.id, "hello", outsider)).rejects.toThrow(SessionNotFoundError);
+        expect(messageRepo.createMessage).not.toHaveBeenCalled();
+    });
+
+    it("should refuse a message once the session has ended", async () => {
+        vi.mocked(sessionRepo.findById).mockResolvedValue(storedSession("ENDED"));
+
+        await expect(sessionService.sendMessage(summary.id, "hello", student)).rejects.toThrow(SessionEndedError);
+        expect(messageRepo.createMessage).not.toHaveBeenCalled();
+    });
+
+    it("should let a member read the messages after the session ended", async () => {
+        vi.mocked(sessionRepo.findById).mockResolvedValue(storedSession("ENDED"));
+        vi.mocked(messageRepo.listMessages).mockResolvedValue([saved]);
+
+        await expect(sessionService.listMessages(summary.id, student)).resolves.toEqual([saved]);
+    });
+
+    it("should not let someone outside the session read the messages", async () => {
+        vi.mocked(sessionRepo.findById).mockResolvedValue(storedSession());
+
+        await expect(sessionService.listMessages(summary.id, outsider)).rejects.toThrow(SessionNotFoundError);
+        expect(messageRepo.listMessages).not.toHaveBeenCalled();
     });
 });
 

@@ -83,6 +83,16 @@ export type StartSessionResponse = ClassSession & {
 
 export type ParticipantRole = "ADMIN" | "TEACHER" | "STUDENT";
 
+export type ChatMessage = {
+    id: string;
+    sessionId: string;
+    senderUserId: string;
+    senderUsername: string;
+    senderRole: ParticipantRole;
+    body: string;
+    sentAt: string;
+};
+
 export type JoinTokenResponse = {
     token: string;
     serverUrl: string;

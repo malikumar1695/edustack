@@ -1,7 +1,7 @@
-import { MemberRole } from "../../prisma/generated";
+import { ParticipantRole } from "../../prisma/generated";
 import { prisma } from "../lib/prisma";
 
-type MemberInput = { userId: string; username: string; role: MemberRole };
+type MemberInput = { userId: string; username: string; role: ParticipantRole };
 
 const sessionSummary = {
     id: true,

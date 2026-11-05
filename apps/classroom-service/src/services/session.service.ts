@@ -1,8 +1,9 @@
 import { logger } from "@ilm/http-kit";
-import { MemberRole, Prisma } from "../../prisma/generated";
+import { ParticipantRole, Prisma } from "../../prisma/generated";
 import { ForbiddenError, SessionEndedError, SessionNotFoundError } from "../errors/AppError";
 import { getClassRoster } from "../lib/academic";
-import { closeRoom, createJoinToken, listActiveRooms, livekitUrl, ParticipantRole } from "../lib/livekit";
+import { broadcastChatMessage, closeRoom, createJoinToken, listActiveRooms, livekitUrl } from "../lib/livekit";
+import * as messageRepo from "../repositories/message.repository";
 import * as sessionRepo from "../repositories/session.repository";
 
 type Actor = { sub: string, username: string, roles: string[] };
@@ -58,7 +59,7 @@ const startSession = async (classId: string, actor: Actor, authorization: string
 
     // Keyed by userId: one person, one membership, teacher role winning if
     // the same account somehow appears twice.
-    const members = new Map<string, { userId: string; username: string; role: MemberRole }>();
+    const members = new Map<string, { userId: string; username: string; role: ParticipantRole }>();
     let unlinkedStudents = 0;
     for (const student of roster.students) {
         // A student without a linked login account has nothing to join with.
@@ -66,9 +67,9 @@ const startSession = async (classId: string, actor: Actor, authorization: string
             unlinkedStudents++;
             continue;
         }
-        members.set(student.userId, { userId: student.userId, username: student.loginUsername, role: MemberRole.STUDENT });
+        members.set(student.userId, { userId: student.userId, username: student.loginUsername, role: ParticipantRole.STUDENT });
     }
-    members.set(roster.teacherUserId, { userId: roster.teacherUserId, username: roster.teacherUsername, role: MemberRole.TEACHER });
+    members.set(roster.teacherUserId, { userId: roster.teacherUserId, username: roster.teacherUsername, role: ParticipantRole.TEACHER });
 
     if (unlinkedStudents > 0) {
         logger.warn({ classId, unlinkedStudents }, "enrolled students without a login account left out of the session");
@@ -119,12 +120,18 @@ const roleIn = (session: NonNullable<Awaited<ReturnType<typeof sessionRepo.findB
     return isAdmin(actor) ? "ADMIN" : null;
 };
 
-const getJoinToken = async (sessionId: string, actor: Actor) => {
+const requireAccess = async (sessionId: string, actor: Actor) => {
     const session = await sessionRepo.findById(sessionId);
 
     // Not a member reads as not found, so session ids can't be probed.
     const role = session ? roleIn(session, actor) : null;
     if (!session || !role) throw new SessionNotFoundError();
+
+    return { session, role };
+};
+
+const getJoinToken = async (sessionId: string, actor: Actor) => {
+    const { session, role } = await requireAccess(sessionId, actor);
 
     if (session.status === "ENDED") throw new SessionEndedError();
 
@@ -144,10 +151,7 @@ const getJoinToken = async (sessionId: string, actor: Actor) => {
 };
 
 const endSession = async (sessionId: string, actor: Actor) => {
-    const session = await sessionRepo.findById(sessionId);
-
-    const role = session ? roleIn(session, actor) : null;
-    if (!session || !role) throw new SessionNotFoundError();
+    const { role } = await requireAccess(sessionId, actor);
     if (role === "STUDENT") throw new ForbiddenError("Only the teacher or an admin can end the class.");
 
     const ended = await sessionRepo.endSession(sessionId);
@@ -165,4 +169,34 @@ const endSession = async (sessionId: string, actor: Actor) => {
     logger.info({ sessionId, by: actor.sub }, "class session ended");
 };
 
-export { endSession, getJoinToken, listLiveSessions, startSession };
+const sendMessage = async (sessionId: string, body: string, actor: Actor) => {
+    const { session, role } = await requireAccess(sessionId, actor);
+
+    if (session.status === "ENDED") throw new SessionEndedError();
+
+    const message = await messageRepo.createMessage({
+        sessionId,
+        senderUserId: actor.sub,
+        senderUsername: actor.username,
+        senderRole: role,
+        body: body.trim(),
+    });
+
+    try {
+        await broadcastChatMessage(sessionId, message);
+    } catch (error) {
+        // It's saved, and that's what counts: the sender has it from this
+        // response, and everyone else gets it when they next load the history.
+        logger.warn({ err: error, sessionId, messageId: message.id }, "failed to broadcast chat message");
+    }
+
+    return message;
+};
+
+/** Open after the session ends too: the record outlives the class. */
+const listMessages = async (sessionId: string, actor: Actor) => {
+    await requireAccess(sessionId, actor);
+    return await messageRepo.listMessages(sessionId);
+};
+
+export { endSession, getJoinToken, listLiveSessions, listMessages, sendMessage, startSession };

@@ -1,6 +1,7 @@
 import { requireRole } from "@ilm/auth-kit";
 import { validateBody } from "@ilm/http-kit";
 import { Router } from "express";
+import { SendMessageDto } from "../dtos/SendMessageDto";
 import { StartSessionDto } from "../dtos/StartSessionDto";
 import * as sessionService from "../services/session.service";
 
@@ -27,6 +28,19 @@ sessionRouter.post("/:id/token", async (req, res) => {
     const result = await sessionService.getJoinToken(req.params.id, req.user!);
     req.log.info({ sessionId: req.params.id, role: result.role, by: req.user!.sub }, "join token issued");
     res.json(result);
+});
+
+sessionRouter.get("/:id/messages", async (req, res) => {
+    res.json(await sessionService.listMessages(req.params.id, req.user!));
+});
+
+sessionRouter.post("/:id/messages", validateBody(SendMessageDto), async (req, res) => {
+    const { body } = req.body as SendMessageDto;
+
+    const message = await sessionService.sendMessage(req.params.id, body, req.user!);
+    // Never the body: what children write in class doesn't belong in the logs.
+    req.log.info({ sessionId: req.params.id, messageId: message.id, by: req.user!.sub }, "chat message sent");
+    res.status(201).json(message);
 });
 
 sessionRouter.post("/:id/end", requireRole("admin", "teacher"), async (req, res) => {

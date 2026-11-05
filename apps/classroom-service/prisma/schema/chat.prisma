@@ -1,0 +1,20 @@
+/// A message typed during a class. Saved first and broadcast second, so
+/// nothing appears in the room that isn't in the record.
+model ChatMessage {
+    id        String @id @default(uuid())
+    sessionId String
+
+    senderUserId String
+    // Denormalised, same as SessionMember: the record reads the same after a
+    // rename, and needs no call to auth-service.
+    senderUsername String
+    senderRole     ParticipantRole
+
+    body   String
+    sentAt DateTime @default(now())
+
+    session ClassSession @relation(fields: [sessionId], references: [id])
+
+    // Every read is one session's messages in time order.
+    @@index([sessionId, sentAt])
+}

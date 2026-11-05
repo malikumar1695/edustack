@@ -17,7 +17,7 @@ This is a learning project, and the interesting part is the decisions rather tha
 | `academic-service` | Working — student records, linking to login accounts. 4 unit tests. |
 | `admin` (React SPA) | Working — user and student management screens. |
 | `notification-service` | **Scaffold only** — health endpoint. Event-driven design not yet built. |
-| `classroom-service` | **In progress** — live video classes on LiveKit: start/join/end sessions with role-checked join tokens. Saved chat and transcripts are next. |
+| `classroom-service` | **In progress** — live video classes on LiveKit: start/join/end sessions with role-checked join tokens, and saved chat. Attendance and transcripts are next. |
 | `web` (Next.js) | Reference implementation of the BFF proxy pattern. Not actively developed. |
 | Deployment | **Live.** Both services on Cloud Run, SPA on Vercel, databases on Neon. |
 | CI/CD | GitHub Actions — typecheck, tests and image builds on every push; deploys to Cloud Run on green. |
@@ -342,6 +342,8 @@ npx vitest run src/    # from one service — that service's unit tests only
 | `GET /sessions/live` | live sessions the caller may join (admins: all) |
 | `POST /sessions/:id/token` | a 10-minute LiveKit join token, for members and admins |
 | `POST /sessions/:id/end` | end the session and disconnect everyone (teacher, admin) |
+| `GET /sessions/:id/messages` | the session's chat, oldest first, latest 500 (members, admins), also after it ended |
+| `POST /sessions/:id/messages` | save a chat message, then broadcast it to the room (members, admins, live sessions only) |
 
 Errors are uniform across all services:
 

@@ -5,8 +5,10 @@ const SERVICE_URLS = {
   academic: import.meta.env.VITE_ACADEMIC_SERVICE_URL ?? "http://localhost:4002",
   notifications:
     import.meta.env.VITE_NOTIFICATION_SERVICE_URL ?? "http://localhost:4003",
+  classroom: import.meta.env.VITE_CLASSROOM_SERVICE_URL ?? "http://localhost:4004",
 } as const;
 
 export const authApi = createHttpClient(SERVICE_URLS.auth);
 export const academicApi = createHttpClient(SERVICE_URLS.academic);
 export const notificationsApi = createHttpClient(SERVICE_URLS.notifications);
+export const classroomApi = createHttpClient(SERVICE_URLS.classroom);

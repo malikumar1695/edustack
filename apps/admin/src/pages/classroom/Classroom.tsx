@@ -15,6 +15,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import type { JoinTokenResponse } from "../../lib/types";
 import { classroomApi } from "../../services/api";
 import { getApiErrorMessage } from "../../services/errors";
+import ClassChat from "./components/ClassChat";
 import ClassTimer from "./components/ClassTimer";
 
 const LIVE_CLASSES_PATH = "/live-classes";
@@ -127,12 +128,16 @@ const Classroom: React.FC = () => {
                 }}
                 onError={(err) => messageApi.error(err.message)}
             >
-                <Stage />
-                {/* Remote audio plays here, independent of which tiles are visible. */}
-                <RoomAudioRenderer />
-                {/* Chat comes from classroom-service in the next step, where it is
-                    stored — LiveKit's built-in chat would vanish with the room. */}
-                <ControlBar controls={{ chat: false }} />
+                <div style={{ display: "flex", height: "100%" }}>
+                    <div style={{ flex: 1, minWidth: 0, height: "100%" }}>
+                        <Stage />
+                        {/* Remote audio plays here, independent of which tiles are visible. */}
+                        <RoomAudioRenderer />
+                        {/* ClassChat replaces LiveKit's built-in chat, which would vanish with the room. */}
+                        <ControlBar controls={{ chat: false }} />
+                    </div>
+                    <ClassChat sessionId={join.session.id} />
+                </div>
             </LiveKitRoom>
         </PageContainer>
     );
